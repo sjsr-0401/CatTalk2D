@@ -32,8 +32,8 @@
 
 ## Platform
 - Windows 개발/테스트 우선
-- Android 빌드 목표
-- 추후 iOS 고려
+- **모바일 타겟**: Android + iOS
+- 크로스 플랫폼 빌드 지원
 
 ## Architecture Philosophy
 **게임 먼저, 채팅은 나중**
