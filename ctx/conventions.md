@@ -80,6 +80,7 @@ Assets/
 ## 코드 스타일
 
 ### C# 스타일
+> 아래는 “형태 예시”이며, 실제 구현은 `ctx/decisions.md`의 정책(싱글톤/씬 유지 여부 등)을 따른다.
 ```csharp
 public class ChatManager : MonoBehaviour
 {
@@ -105,6 +106,30 @@ public class ChatManager : MonoBehaviour
     }
 }
 ```
+### C# 코드 규칙 (필수)
+
+#### 네이밍
+- 클래스/메서드/프로퍼티: PascalCase
+- 지역변수/매개변수: camelCase
+- private 필드: `_camelCase`
+- `SerializeField private` 필드도 `_camelCase`로 통일
+
+#### Unity 라이프사이클/구조
+- `Update()`는 최소화한다. 가능한 이벤트/코루틴/타이머로 대체한다.
+- Inspector 연결이 필요한 참조는 `public` 대신 `[SerializeField] private` 사용.
+- Null 가능성이 있는 참조는 사용 전에 null 체크/가드 코드를 둔다.
+
+#### 매니저(Manager) 정책
+- Manager는 기본적으로 “씬 참조(인스펙터/DI)”를 우선한다.
+- 싱글톤은 “씬 전환에도 유지가 필요한 경우”에만 허용한다.
+- 싱글톤을 쓸 때는 `DontDestroyOnLoad(gameObject)` 사용 여부를 결정 문서(`ctx/decisions.md`)에 기록한다.
+
+#### 코드 품질
+- PR/커밋 단위로 동작 가능한 상태 유지(깨진 상태 커밋 금지)
+- 경고/로그는 커밋 전에 정리(`Debug.Log` 남발 금지)
+- 복잡한 로직에는 “왜” 중심의 짧은 주석만 추가한다.
+
+
 
 ### 주석 규칙
 - Public API는 XML 주석 사용
