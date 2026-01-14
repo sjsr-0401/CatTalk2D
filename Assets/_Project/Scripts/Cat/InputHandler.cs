@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace CatTalk2D.Cat
 {
@@ -50,7 +51,15 @@ namespace CatTalk2D.Cat
         /// </summary>
         private void HandleInput()
         {
+            // UI 클릭인지 확인 (UI 클릭이면 무시)
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                Debug.Log("[InputHandler] UI 클릭 감지 - 무시됨");
+                return;
+            }
+
             Vector2 inputPosition = GetInputPosition();
+            Debug.Log($"[InputHandler] 입력 감지 - 월드 좌표: {inputPosition}");
 
             // 1. 클릭한 위치에 오브젝트가 있는지 확인
             GameObject clickedObject = GetClickedObject(inputPosition);
@@ -132,13 +141,41 @@ namespace CatTalk2D.Cat
         /// </summary>
         private void OnScreenClicked(Vector2 worldPosition)
         {
-            Debug.Log($"화면 클릭: {worldPosition}");
+            // 창문 오브젝트 기준으로 Y 좌표 제한 (창문 아래만 이동 가능)
+            GameObject window = GameObject.Find("WindowPanel");
+            float maxY = -0.5f; // 기본 창문 하단 (음수 값)
+
+            if (window != null)
+            {
+                // 창문 하단 Y 좌표를 밥그릇과 동일한 방식으로 계산
+                RectTransform windowRect = window.GetComponent<RectTransform>();
+                if (windowRect != null)
+                {
+                    // GetWorldCorners: RectTransform의 네 모서리를 월드 좌표로 반환
+                    // [0] = 왼쪽 하단, [1] = 왼쪽 상단, [2] = 오른쪽 상단, [3] = 오른쪽 하단
+                    Vector3[] corners = new Vector3[4];
+                    windowRect.GetWorldCorners(corners);
+
+                    // 창문 하단(corners[0])의 Screen Space Y 좌표
+                    Vector3 bottomScreenPos = corners[0];
+
+                    // Screen Space를 World Space로 변환
+                    Vector3 worldPos = _mainCamera.ScreenToWorldPoint(new Vector3(bottomScreenPos.x, bottomScreenPos.y, 10f));
+                    maxY = worldPos.y; // 창문 하단 Y 좌표 (음수)
+                }
+            }
+
+            // 클릭한 Y가 창문 아래(더 작은 음수)면 그대로, 위면 창문 Y로 제한
+            float targetY = Mathf.Min(worldPosition.y, maxY);
+            Vector2 targetPosition = new Vector2(worldPosition.x, targetY);
+
+            Debug.Log($"화면 클릭: {worldPosition} → 목표: {targetPosition} (창문 기준: {maxY})");
 
             // CatMovement에게 이동 명령 전달
-            CatMovement catMovement = FindObjectOfType<CatMovement>();
+            CatMovement catMovement = Object.FindAnyObjectByType<CatMovement>();
             if (catMovement != null)
             {
-                catMovement.MoveTo(worldPosition);
+                catMovement.MoveTo(targetPosition);
             }
         }
     }

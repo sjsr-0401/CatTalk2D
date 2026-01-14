@@ -12,6 +12,7 @@ namespace CatTalk2D.Models
         [Header("기본 상태")]
         [SerializeField] private Mood _currentMood = Mood.Normal;
         [SerializeField] [Range(0, 100)] private float _affection = 50f;
+        [SerializeField] [Range(0, 100)] private float _hunger = 0f;
 
         // 프로퍼티: 캡슐화 (읽기/쓰기 제어)
         public Mood CurrentMood
@@ -25,6 +26,14 @@ namespace CatTalk2D.Models
             get => _affection;
             set => _affection = Mathf.Clamp(value, 0f, 100f); // 0~100 범위 보장
         }
+
+        public float Hunger
+        {
+            get => _hunger;
+            set => _hunger = Mathf.Clamp(value, 0f, 100f);
+        }
+
+        public bool IsHungry => _hunger > 70f; // 70 이상이면 배고픔
 
         /// <summary>
         /// 친밀도 증가
@@ -53,6 +62,28 @@ namespace CatTalk2D.Models
             {
                 Debug.Log($"기분 변화: {_currentMood} → {newMood}");
                 _currentMood = newMood;
+            }
+        }
+
+        /// <summary>
+        /// 밥 먹기 (배고픔 감소)
+        /// </summary>
+        public void Eat()
+        {
+            Hunger = 0f;
+            IncreaseAffection(5f);
+            Debug.Log("🍚 냠냠! 맛있다!");
+        }
+
+        /// <summary>
+        /// 시간 경과에 따른 배고픔 증가
+        /// </summary>
+        public void IncreaseHunger(float amount)
+        {
+            Hunger += amount;
+            if (IsHungry)
+            {
+                Debug.Log($"😿 배고파... (배고픔: {Hunger})");
             }
         }
     }

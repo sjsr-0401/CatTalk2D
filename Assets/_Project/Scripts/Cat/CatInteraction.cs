@@ -15,6 +15,9 @@ namespace CatTalk2D.Cat
         [Header("반응 설정")]
         [SerializeField] private float _affectionIncreaseAmount = 5f;
 
+        [Header("이펙트")]
+        [SerializeField] private GameObject _heartEffectPrefab;
+
         private void Awake()
         {
             // CatState 초기화
@@ -39,17 +42,29 @@ namespace CatTalk2D.Cat
         }
 
         /// <summary>
-        /// 반응 효과 실행 (Day 1: 로그만 출력)
+        /// 반응 효과 실행
         /// </summary>
         private void PlayReactionEffect()
         {
-            // Day 1: 간단한 로그 출력
             Debug.Log($"💖 하트 이펙트! (친밀도: {_catState.Affection})");
 
-            // TODO Day 2: 실제 이펙트/애니메이션 추가
-            // - 하트 파티클 생성
-            // - 야옹 사운드 재생
-            // - 고양이 애니메이션 재생
+            // 하트 이펙트 생성
+            if (_heartEffectPrefab != null)
+            {
+                Vector3 spawnPos = transform.position + Vector3.up * 1.5f; // 고양이 위쪽으로
+                Instantiate(_heartEffectPrefab, spawnPos, Quaternion.identity);
+            }
+
+            // TODO: 야옹 사운드 재생
+            // TODO: 고양이 애니메이션 재생
+        }
+
+        /// <summary>
+        /// 밥 먹었을 때 하트 이펙트 (외부에서 호출)
+        /// </summary>
+        public void ShowHeart()
+        {
+            PlayReactionEffect();
         }
 
         /// <summary>
