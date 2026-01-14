@@ -21,7 +21,7 @@ namespace CatTalk2D.UI
         /// <summary>
         /// 고양이 메시지 말풍선 생성
         /// </summary>
-        public static GameObject CreateCatMessage(Transform parent, string message, Sprite catIcon, TMP_FontAsset font = null)
+        public static GameObject CreateCatMessage(Transform parent, string message, Sprite catIcon, TMP_FontAsset font = null, TMP_SpriteAsset emojiAsset = null)
         {
             // 메인 컨테이너
             GameObject msgObj = new GameObject("CatMessage");
@@ -116,6 +116,7 @@ namespace CatTalk2D.UI
             textComponent.overflowMode = TextOverflowModes.Overflow;
             textComponent.raycastTarget = false; // 클릭 통과
             if (font != null) textComponent.font = font;
+            if (emojiAsset != null) textComponent.spriteAsset = emojiAsset;
 
             // 텍스트 최대 너비 제한
             RectTransform textRect = textObj.GetComponent<RectTransform>();
@@ -132,7 +133,7 @@ namespace CatTalk2D.UI
         /// <summary>
         /// 사용자 메시지 말풍선 생성
         /// </summary>
-        public static GameObject CreateUserMessage(Transform parent, string message, Sprite userIcon, TMP_FontAsset font = null)
+        public static GameObject CreateUserMessage(Transform parent, string message, Sprite userIcon, TMP_FontAsset font = null, TMP_SpriteAsset emojiAsset = null)
         {
             // 메인 컨테이너
             GameObject msgObj = new GameObject("UserMessage");
@@ -241,6 +242,7 @@ namespace CatTalk2D.UI
             textComponent.overflowMode = TextOverflowModes.Overflow;
             textComponent.raycastTarget = false; // 클릭 통과
             if (font != null) textComponent.font = font;
+            if (emojiAsset != null) textComponent.spriteAsset = emojiAsset;
 
             // 텍스트 최대 너비 제한
             RectTransform textRect = textObj.GetComponent<RectTransform>();

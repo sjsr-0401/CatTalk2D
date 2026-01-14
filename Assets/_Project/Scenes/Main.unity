@@ -373,7 +373,7 @@ MonoBehaviour:
   _scrollRect: {fileID: 0}
   _catIconSprite: {fileID: 21300000, guid: dde27f38cf9ad5841b50b73c0655bbf9, type: 3}
   _userIconSprite: {fileID: 21300000, guid: f4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9, type: 3}
-  _messageFont: {fileID: 11400000, guid: 41f066dd7aee99042934513b846a3650, type: 2}
+  _messageFont: {fileID: 11400000, guid: a5db5a0d05ee9db409c01447bc19b0b7, type: 2}
 --- !u!1 &298244206
 GameObject:
   m_ObjectHideFlags: 0
@@ -763,7 +763,7 @@ MonoBehaviour:
   m_CaretWidth: 1
   m_ReadOnly: 0
   m_RichText: 1
-  m_GlobalFontAsset: {fileID: 11400000, guid: 41f066dd7aee99042934513b846a3650, type: 2}
+  m_GlobalFontAsset: {fileID: 11400000, guid: a5db5a0d05ee9db409c01447bc19b0b7, type: 2}
   m_OnFocusSelectAll: 1
   m_ResetOnDeActivation: 1
   m_KeepTextSelectionVisible: 0
@@ -1095,8 +1095,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u200B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 41f066dd7aee99042934513b846a3650, type: 2}
-  m_sharedMaterial: {fileID: -1224873586944141120, guid: 41f066dd7aee99042934513b846a3650, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a5db5a0d05ee9db409c01447bc19b0b7, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 2a2dfe142a708a04d81108d8176923c8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2229,7 +2229,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\uBA54\uC138\uC9C0\uB97C \uC785\uB825\uD558\uC138\uC694.."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 41f066dd7aee99042934513b846a3650, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a5db5a0d05ee9db409c01447bc19b0b7, type: 2}
   m_sharedMaterial: {fileID: -1224873586944141120, guid: 41f066dd7aee99042934513b846a3650, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}

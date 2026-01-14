@@ -19,7 +19,9 @@ namespace CatTalk2D.UI
         [Header("UI 요소")]
         [SerializeField] private Transform _messageContainer;
         [SerializeField] private TMP_InputField _inputField;
-        [SerializeField] private ScrollRect _scrollRect;
+
+        private ScrollRect _scrollRect;
+        private RectTransform _scrollViewRect;
 
         [Header("아이콘 이미지")]
         [SerializeField] private Sprite _catIconSprite;
@@ -27,6 +29,7 @@ namespace CatTalk2D.UI
 
         [Header("폰트")]
         [SerializeField] private TMP_FontAsset _messageFont;
+        [SerializeField] private TMP_SpriteAsset _emojiSpriteAsset;
 
         private List<string> _conversationHistory = new List<string>();
 
@@ -105,6 +108,14 @@ namespace CatTalk2D.UI
                     if (_inputField.textComponent != null)
                     {
                         _inputField.textComponent.font = _messageFont;
+
+                        // 이모지 Sprite Asset 연결
+                        if (_emojiSpriteAsset != null)
+                        {
+                            _inputField.textComponent.spriteAsset = _emojiSpriteAsset;
+                            Debug.Log($"[ChatUI] InputField 이모지 Sprite Asset 설정: {_emojiSpriteAsset.name}");
+                        }
+
                         Debug.Log($"[ChatUI] InputField Text 폰트 설정: {_messageFont.name}");
                     }
 
@@ -123,33 +134,8 @@ namespace CatTalk2D.UI
                 Debug.Log("[ChatUI] InputField 설정 완료");
             }
 
-            // MessageContainer 레이아웃 설정 (아래에서 위로)
-            if (_messageContainer != null)
-            {
-                // RectTransform 설정 (입력창 위에 여유 공간)
-                RectTransform containerRect = _messageContainer.GetComponent<RectTransform>();
-                if (containerRect != null)
-                {
-                    containerRect.offsetMin = new Vector2(20, 100); // Left, Bottom
-                    containerRect.offsetMax = new Vector2(-20, -20); // Right, Top
-                    Debug.Log($"[ChatUI] MessageContainer RectTransform 설정: offsetMin={containerRect.offsetMin}, offsetMax={containerRect.offsetMax}");
-                }
-
-                VerticalLayoutGroup vLayout = _messageContainer.GetComponent<VerticalLayoutGroup>();
-                if (vLayout == null)
-                {
-                    vLayout = _messageContainer.gameObject.AddComponent<VerticalLayoutGroup>();
-                }
-                vLayout.childAlignment = TextAnchor.LowerCenter;
-                vLayout.spacing = 10;
-                vLayout.padding = new RectOffset(10, 10, 10, 10);
-                vLayout.childControlWidth = true;
-                vLayout.childControlHeight = true;
-                vLayout.childForceExpandWidth = true;
-                vLayout.childForceExpandHeight = false;
-
-                Debug.Log($"[ChatUI] VerticalLayoutGroup 설정 완료: childAlignment={vLayout.childAlignment}");
-            }
+            // ScrollView 코드로 생성
+            SetupScrollView();
 
             // 폰트 체크
             if (_messageFont != null)
@@ -162,7 +148,7 @@ namespace CatTalk2D.UI
             }
 
             // 초기 메시지
-            AddCatMessage("냥냥! 나는 망고야");
+            AddCatMessage("안녕! 나는 망고야");
         }
 
         private void OnInputSubmit(string text)
@@ -199,7 +185,7 @@ namespace CatTalk2D.UI
         {
             if (_messageContainer != null)
             {
-                GameObject msgObj = MessageBubble.CreateUserMessage(_messageContainer, message, _userIconSprite, _messageFont);
+                GameObject msgObj = MessageBubble.CreateUserMessage(_messageContainer, message, _userIconSprite, _messageFont, _emojiSpriteAsset);
             }
 
             _conversationHistory.Add($"User: {message}");
@@ -213,7 +199,7 @@ namespace CatTalk2D.UI
         {
             if (_messageContainer != null)
             {
-                GameObject msgObj = MessageBubble.CreateCatMessage(_messageContainer, message, _catIconSprite, _messageFont);
+                GameObject msgObj = MessageBubble.CreateCatMessage(_messageContainer, message, _catIconSprite, _messageFont, _emojiSpriteAsset);
             }
 
             _conversationHistory.Add($"Cat: {message}");
@@ -268,7 +254,7 @@ namespace CatTalk2D.UI
                     Destroy(_messageContainer.GetChild(_messageContainer.childCount - 1).gameObject);
                 }
 
-                AddCatMessage("냥냥~ 😺");
+                AddCatMessage("냥냥~ <sprite=0>");
             }
         }
 
@@ -278,6 +264,106 @@ namespace CatTalk2D.UI
         public void CatSpeakFirst(string message)
         {
             AddCatMessage(message);
+        }
+
+        /// <summary>
+        /// ScrollView 코드로 생성
+        /// </summary>
+        private void SetupScrollView()
+        {
+            if (_messageContainer == null)
+            {
+                Debug.LogError("[ChatUI] MessageContainer가 null입니다!");
+                return;
+            }
+
+            // 1. ScrollView GameObject 생성 (MessageContainer의 부모로)
+            GameObject scrollViewObj = new GameObject("MessageScrollView");
+            scrollViewObj.transform.SetParent(transform, false);
+
+            // MessageContainer를 ScrollView보다 먼저 배치 (InputField 위에 오도록)
+            if (_inputField != null)
+            {
+                int inputIndex = _inputField.transform.GetSiblingIndex();
+                scrollViewObj.transform.SetSiblingIndex(inputIndex);
+            }
+
+            _scrollViewRect = scrollViewObj.AddComponent<RectTransform>();
+
+            // ScrollView 크기 설정 (입력창 위쪽 전체)
+            _scrollViewRect.anchorMin = new Vector2(0, 0);
+            _scrollViewRect.anchorMax = new Vector2(1, 1);
+            _scrollViewRect.offsetMin = new Vector2(20, 100);  // Left, Bottom (입력창 위)
+            _scrollViewRect.offsetMax = new Vector2(-20, -20); // Right, Top
+
+            // 2. Viewport 생성
+            GameObject viewportObj = new GameObject("Viewport");
+            viewportObj.transform.SetParent(scrollViewObj.transform, false);
+
+            RectTransform viewportRect = viewportObj.AddComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.sizeDelta = Vector2.zero;
+            viewportRect.pivot = new Vector2(0.5f, 0.5f);
+
+            // Viewport에 Mask 추가 (스크롤 영역 밖 숨김)
+            Image viewportImage = viewportObj.AddComponent<Image>();
+            viewportImage.color = new Color(1, 1, 1, 0.01f); // 거의 투명
+
+            Mask viewportMask = viewportObj.AddComponent<Mask>();
+            viewportMask.showMaskGraphic = false;
+
+            // 3. MessageContainer를 Viewport의 자식으로 이동
+            _messageContainer.SetParent(viewportObj.transform, false);
+
+            RectTransform contentRect = _messageContainer.GetComponent<RectTransform>();
+            if (contentRect == null)
+            {
+                contentRect = _messageContainer.gameObject.AddComponent<RectTransform>();
+            }
+
+            // Content 설정 (아래에서 위로 쌓이도록)
+            contentRect.anchorMin = new Vector2(0, 0);
+            contentRect.anchorMax = new Vector2(1, 1);
+            contentRect.pivot = new Vector2(0.5f, 0); // 아래쪽 기준
+            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.sizeDelta = Vector2.zero;
+
+            // 4. ContentSizeFitter 추가
+            ContentSizeFitter contentFitter = _messageContainer.GetComponent<ContentSizeFitter>();
+            if (contentFitter == null)
+            {
+                contentFitter = _messageContainer.gameObject.AddComponent<ContentSizeFitter>();
+            }
+            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            contentFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+            // 5. VerticalLayoutGroup 설정
+            VerticalLayoutGroup vLayout = _messageContainer.GetComponent<VerticalLayoutGroup>();
+            if (vLayout == null)
+            {
+                vLayout = _messageContainer.gameObject.AddComponent<VerticalLayoutGroup>();
+            }
+            vLayout.childAlignment = TextAnchor.LowerCenter;
+            vLayout.spacing = 10;
+            vLayout.padding = new RectOffset(10, 10, 10, 10);
+            vLayout.childControlWidth = true;
+            vLayout.childControlHeight = true;
+            vLayout.childForceExpandWidth = true;
+            vLayout.childForceExpandHeight = false;
+
+            // 6. ScrollRect 컴포넌트 추가
+            _scrollRect = scrollViewObj.AddComponent<ScrollRect>();
+            _scrollRect.content = contentRect;
+            _scrollRect.viewport = viewportRect;
+            _scrollRect.horizontal = false;
+            _scrollRect.vertical = true;
+            _scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            _scrollRect.inertia = true;
+            _scrollRect.scrollSensitivity = 20f;
+            _scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+
+            Debug.Log("[ChatUI] ✅ ScrollView 코드로 생성 완료!");
         }
     }
 }
