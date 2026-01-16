@@ -1,0 +1,210 @@
+<Window x:Class="CatLogAnalyzer.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        xmlns:vm="clr-namespace:CatLogAnalyzer.ViewModels"
+        mc:Ignorable="d"
+        Title="CatTalk2D 로그 분석기"
+        Height="800" Width="1200"
+        Background="{StaticResource BackgroundBrush}"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 좌측 패널: 파일 선택 -->
+        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- 헤더 -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                    <TextBlock Text="🐱 CatTalk2D"
+                               FontSize="24" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text="로그 분석기"
+                               FontSize="14"
+                               Foreground="{StaticResource SubTextBrush}"/>
+                </StackPanel>
+
+                <!-- 폴더 선택 -->
+                <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                    <Button Content="📁 폴더 선택"
+                            Command="{Binding SelectFolderCommand}"
+                            Style="{StaticResource PrimaryButton}"/>
+                    <TextBlock Text="{Binding LogFolderPath}"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{StaticResource SubTextBrush}"
+                               Margin="0,8,0,0"
+                               FontSize="11"/>
+                </StackPanel>
+
+                <!-- 파일 목록 -->
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding LogFiles}"
+                         SelectedItem="{Binding SelectedLogFile}"
+                         BorderThickness="0"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="8" Margin="0,2" CornerRadius="6"
+                                    Background="#F8F8F8">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding FileName}"
+                                               FontWeight="SemiBold"
+                                               FontSize="12"/>
+                                    <TextBlock Text="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                               FontSize="10"
+                                               Foreground="{StaticResource SubTextBrush}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- 상태 메시지 -->
+                <TextBlock Grid.Row="3"
+                           Text="{Binding StatusMessage}"
+                           Foreground="{StaticResource SubTextBrush}"
+                           FontSize="12"
+                           Margin="0,8,0,0"/>
+            </Grid>
+        </Border>
+
+        <!-- 우측 패널: 차트/통계 -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 통계 카드 -->
+                <Border Style="{StaticResource CardStyle}" Margin="8,0,0,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                            <TextBlock Text="🧡 최고 호감도" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="{Binding Statistics.MaxAffection, StringFormat='{}{0:F1}'}"
+                                       FontSize="28" FontWeight="Bold" Foreground="#E17055"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                            <TextBlock Text="😌 최저 스트레스" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="{Binding Statistics.MinStress, StringFormat='{}{0:F1}'}"
+                                       FontSize="28" FontWeight="Bold" Foreground="#00B894"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                            <TextBlock Text="📊 총 상호작용" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="{Binding Statistics.TotalInteractions}"
+                                       FontSize="28" FontWeight="Bold" Foreground="#6C5CE7"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                            <TextBlock Text="💬 대화 횟수" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="{Binding Statistics.TalkCount}"
+                                       FontSize="28" FontWeight="Bold" Foreground="#74B9FF"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                            <TextBlock Text="⏱️ 세션 시간" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="{Binding Statistics.SessionDuration, StringFormat='{}{0:mm\\:ss}'}"
+                                       FontSize="28" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- 호감도 차트 -->
+                <Border Style="{StaticResource CardStyle}" Margin="8,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="💕 호감도 변화" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <lvc:CartesianChart Height="200"
+                                           Series="{Binding AffectionSeries}"
+                                           XAxes="{Binding TimeAxis}"
+                                           YAxes="{Binding ValueAxis}"
+                                           ZoomMode="X"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 상태 차트 (토글) -->
+                <Border Style="{StaticResource CardStyle}" Margin="8,0,0,16">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="📈 상태 변화" FontSize="16" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <CheckBox Content="배고픔" IsChecked="{Binding ShowHunger}" Margin="0,0,12,0"/>
+                                <CheckBox Content="스트레스" IsChecked="{Binding ShowStress}" Margin="0,0,12,0"/>
+                                <CheckBox Content="에너지" IsChecked="{Binding ShowEnergy}" Margin="0,0,12,0"/>
+                                <CheckBox Content="재미" IsChecked="{Binding ShowFun}"/>
+                            </StackPanel>
+                        </Grid>
+                        <lvc:CartesianChart Height="200"
+                                           Series="{Binding StateSeries}"
+                                           XAxes="{Binding TimeAxis}"
+                                           YAxes="{Binding ValueAxis}"/>
+                    </StackPanel>
+                </Border>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 행동 바 차트 -->
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="8,0,8,16">
+                        <StackPanel>
+                            <TextBlock Text="🎯 행동 분포" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <lvc:CartesianChart Height="200"
+                                               Series="{Binding ActionSeries}">
+                                <lvc:CartesianChart.XAxes>
+                                    <lvc:Axis Labels="밥주기, 쓰다듬기, 놀기, 대화, 혼잣말"/>
+                                </lvc:CartesianChart.XAxes>
+                            </lvc:CartesianChart>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 성격 레이더 차트 -->
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="😺 성격 분석" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <lvc:PolarChart Height="200"
+                                           Series="{Binding PersonalitySeries}"
+                                           AngleAxes="{Binding PersonalityAngles}"
+                                           RadiusAxes="{Binding PersonalityRadius}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 로딩 오버레이 -->
+        <Border Grid.ColumnSpan="2"
+                Background="#80000000"
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"
+                d:Visibility="Collapsed">
+            <TextBlock Text="로딩 중..."
+                       Foreground="White"
+                       FontSize="20"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Window>

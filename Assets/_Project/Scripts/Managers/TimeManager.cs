@@ -39,6 +39,9 @@ namespace CatTalk2D.Managers
         public delegate void TimeChangedHandler(int hour, int minute);
         public event TimeChangedHandler OnTimeChanged;
 
+        public delegate void HourChangedHandler(int hour);
+        public event HourChangedHandler OnHourChanged;  // 매 시간 호출
+
         public delegate void DayChangedHandler(int newDay);
         public event DayChangedHandler OnNewDay;
 
@@ -46,6 +49,7 @@ namespace CatTalk2D.Managers
         public event TimeOfDayChangedHandler OnTimeOfDayChanged;
 
         private TimeOfDay _lastTimeOfDay;
+        private int _lastHour;
 
         private void Awake()
         {
@@ -60,6 +64,7 @@ namespace CatTalk2D.Managers
             // 시작 시간 설정
             _currentTime = _startHour + (_startMinute / 60f);
             _lastTimeOfDay = GetTimeOfDay();
+            _lastHour = CurrentHour;
         }
 
         private void Update()
@@ -81,6 +86,14 @@ namespace CatTalk2D.Managers
             if (Mathf.FloorToInt(previousTime * 60) != Mathf.FloorToInt(_currentTime * 60))
             {
                 OnTimeChanged?.Invoke(CurrentHour, CurrentMinute);
+            }
+
+            // 1시간 경과 시 이벤트 발생
+            if (CurrentHour != _lastHour)
+            {
+                _lastHour = CurrentHour;
+                OnHourChanged?.Invoke(CurrentHour);
+                Debug.Log($"⏰ 시간 경과: {CurrentHour}시");
             }
 
             // 시간대 변경 체크

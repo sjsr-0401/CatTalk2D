@@ -1,0 +1,278 @@
+{
+  "sessionId": "sample-001",
+  "startTime": "2026-01-16 14:00:00",
+  "endTime": "2026-01-16 14:30:00",
+  "totalRecords": 15,
+  "records": [
+    {
+      "timestamp": "2026-01-16 14:00:15",
+      "actionType": "pet",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 20,
+        "energy": 90,
+        "stress": 15,
+        "fun": 50,
+        "affection": 52,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Normal"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:02:30",
+      "actionType": "talk",
+      "userText": "안녕 망고야",
+      "aiText": "안녕냥! 오늘 기분 좋아~",
+      "state": {
+        "hunger": 22,
+        "energy": 88,
+        "stress": 12,
+        "fun": 52,
+        "affection": 53,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Normal"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:05:00",
+      "actionType": "feed",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 0,
+        "energy": 85,
+        "stress": 7,
+        "fun": 50,
+        "affection": 54,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:07:20",
+      "actionType": "pet",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 5,
+        "energy": 82,
+        "stress": 0,
+        "fun": 48,
+        "affection": 56,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:10:00",
+      "actionType": "talk",
+      "userText": "귀엽다 망고야",
+      "aiText": "헤헤 고마워냥~",
+      "state": {
+        "hunger": 10,
+        "energy": 80,
+        "stress": 0,
+        "fun": 46,
+        "affection": 57,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:12:15",
+      "actionType": "play",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 15,
+        "energy": 70,
+        "stress": 0,
+        "fun": 76,
+        "affection": 59,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:15:30",
+      "actionType": "monologue",
+      "userText": "",
+      "aiText": "흐흐 기분 좋다냥!",
+      "state": {
+        "hunger": 20,
+        "energy": 68,
+        "stress": 2,
+        "fun": 73,
+        "affection": 60,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:18:00",
+      "actionType": "talk",
+      "userText": "뭐해?",
+      "aiText": "뒹굴뒹굴하고 있었어냥",
+      "state": {
+        "hunger": 25,
+        "energy": 65,
+        "stress": 5,
+        "fun": 70,
+        "affection": 60,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Normal"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:20:00",
+      "actionType": "pet",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 28,
+        "energy": 63,
+        "stress": 0,
+        "fun": 68,
+        "affection": 62,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:22:30",
+      "actionType": "talk",
+      "userText": "배고파?",
+      "aiText": "응 배고파냥... 밥 줘!",
+      "state": {
+        "hunger": 32,
+        "energy": 60,
+        "stress": 5,
+        "fun": 65,
+        "affection": 62,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Normal"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:24:00",
+      "actionType": "feed",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 0,
+        "energy": 58,
+        "stress": 0,
+        "fun": 62,
+        "affection": 63,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:26:00",
+      "actionType": "play",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 5,
+        "energy": 48,
+        "stress": 0,
+        "fun": 92,
+        "affection": 65,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:27:30",
+      "actionType": "monologue",
+      "userText": "",
+      "aiText": "놀이 재밌다냥!",
+      "state": {
+        "hunger": 8,
+        "energy": 45,
+        "stress": 0,
+        "fun": 90,
+        "affection": 66,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:28:45",
+      "actionType": "pet",
+      "userText": "",
+      "aiText": "",
+      "state": {
+        "hunger": 10,
+        "energy": 43,
+        "stress": 0,
+        "fun": 88,
+        "affection": 68,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    },
+    {
+      "timestamp": "2026-01-16 14:30:00",
+      "actionType": "talk",
+      "userText": "사랑해 망고야",
+      "aiText": "나도 좋아냥~",
+      "state": {
+        "hunger": 12,
+        "energy": 40,
+        "stress": 0,
+        "fun": 85,
+        "affection": 70,
+        "playful": 80,
+        "shy": 40,
+        "aggressive": 60,
+        "curious": 70,
+        "mood": "Happy"
+      }
+    }
+  ]
+}
