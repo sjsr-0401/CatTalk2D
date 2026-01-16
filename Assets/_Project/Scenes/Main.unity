@@ -370,10 +370,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CatTalk2D.UI.ChatUI
   _messageContainer: {fileID: 15119908}
   _inputField: {fileID: 437079523}
-  _scrollRect: {fileID: 0}
   _catIconSprite: {fileID: 21300000, guid: dde27f38cf9ad5841b50b73c0655bbf9, type: 3}
   _userIconSprite: {fileID: 21300000, guid: f4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9, type: 3}
   _messageFont: {fileID: 11400000, guid: a5db5a0d05ee9db409c01447bc19b0b7, type: 2}
+  _emojiSpriteAsset: {fileID: 11400000, guid: c41005c129ba4d66911b75229fd70b45, type: 2}
 --- !u!1 &298244206
 GameObject:
   m_ObjectHideFlags: 0
@@ -1422,7 +1422,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\uBC25 \uC8FC\uAE30"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 41f066dd7aee99042934513b846a3650, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a5db5a0d05ee9db409c01447bc19b0b7, type: 2}
   m_sharedMaterial: {fileID: -1224873586944141120, guid: 41f066dd7aee99042934513b846a3650, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}

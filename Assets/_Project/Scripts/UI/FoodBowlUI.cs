@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using CatTalk2D.Cat;
+using CatTalk2D.Core;
 
 namespace CatTalk2D.UI
 {
@@ -79,7 +80,6 @@ namespace CatTalk2D.UI
         [SerializeField] private float _eatAmount = 5f; // 한 번에 먹는 양
 
         private float _currentFood = 0f; // 현재 밥그릇에 있는 밥의 양
-        private CatInteraction _catInteraction;
 
         private void Start()
         {
@@ -96,9 +96,6 @@ namespace CatTalk2D.UI
             {
                 Debug.LogWarning("[FoodBowlUI] _feedButton이 null입니다! Inspector에서 연결해주세요.");
             }
-
-            // 고양이 찾기
-            _catInteraction = Object.FindAnyObjectByType<CatInteraction>();
 
             UpdateBowlVisual();
         }
@@ -125,21 +122,16 @@ namespace CatTalk2D.UI
         /// </summary>
         public void CatEat()
         {
-            if (_currentFood > 0f && _catInteraction != null)
+            if (_currentFood > 0f)
             {
                 // 5씩 먹기 (남은 밥이 5보다 적으면 전부 먹음)
                 float eatNow = Mathf.Min(_eatAmount, _currentFood);
                 _currentFood -= eatNow;
 
-                // 배고픔 완전히 해소
-                var catState = _catInteraction.GetCatState();
-                catState.Hunger = 0f;
+                // 이벤트 시스템으로 밥 먹기 이벤트 발생!
+                CatEventSystem.TriggerFeed((Vector3)BowlPosition);
 
-                // 친밀도 증가
-                catState.IncreaseAffection(5f);
-
-                _catInteraction.ShowHeart(); // 하트 이펙트
-                Debug.Log($"😋 냠냠! 밥 먹고 배불러! (남은 밥: {_currentFood}, 배고픔: {catState.Hunger})");
+                Debug.Log($"😋 냠냠! 밥 먹고 배불러! (남은 밥: {_currentFood})");
                 UpdateBowlVisual();
             }
             else if (_currentFood <= 0f)

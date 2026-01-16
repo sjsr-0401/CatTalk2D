@@ -194,9 +194,11 @@ GameManager.Instance.SomeMethod();
 - `ChatUI.Instance`
 - `OllamaAPIManager.Instance`
 
-### 2. 이벤트 시스템
+### 2. 이벤트 시스템 (Event-Driven Architecture)
+
+#### 기본 개념
 ```csharp
-// UnityEvent 사용
+// UnityEvent 사용 (Inspector에서 연결 가능)
 [SerializeField] private UnityEvent onGameStart;
 
 private void Start()
@@ -204,14 +206,90 @@ private void Start()
     onGameStart?.Invoke();
 }
 
-// C# 이벤트
-public event System.Action OnCatFed;
+// C# Action 이벤트 (간단한 알림)
+public static event Action<int> OnScoreChanged;
 
-public void FeedCat()
+public void AddScore(int amount)
 {
-    OnCatFed?.Invoke();
+    _score += amount;
+    OnScoreChanged?.Invoke(_score);
 }
 ```
+
+#### EventHandler 패턴 (표준 이벤트 패턴)
+```csharp
+// 1. 이벤트 데이터 클래스 정의
+public class InteractionEventArgs : EventArgs
+{
+    public string Type { get; }
+    public float Intensity { get; }
+    public DateTime Timestamp { get; }
+
+    public InteractionEventArgs(string type, float intensity)
+    {
+        Type = type;
+        Intensity = intensity;
+        Timestamp = DateTime.Now;
+    }
+}
+
+// 2. 이벤트 선언
+public static event EventHandler<InteractionEventArgs> OnInteraction;
+
+// 3. 이벤트 발생
+public static void TriggerInteraction(string type, float intensity)
+{
+    var args = new InteractionEventArgs(type, intensity);
+    OnInteraction?.Invoke(null, args);  // sender, args
+}
+
+// 4. 이벤트 구독 (OnEnable에서)
+private void OnEnable()
+{
+    MyEventSystem.OnInteraction += HandleInteraction;
+}
+
+// 5. 이벤트 구독 해제 (OnDisable에서 - 중요!)
+private void OnDisable()
+{
+    MyEventSystem.OnInteraction -= HandleInteraction;
+}
+
+// 6. 이벤트 핸들러
+private void HandleInteraction(object sender, InteractionEventArgs e)
+{
+    Debug.Log($"이벤트 발생: {e.Type}, 강도: {e.Intensity}");
+}
+```
+
+#### Action vs EventHandler 비교
+| 특징 | Action | EventHandler |
+|------|--------|--------------|
+| 문법 | `Action<T>` | `EventHandler<TEventArgs>` |
+| sender 포함 | X | O |
+| 데이터 구조 | 단순 타입 | EventArgs 클래스 |
+| 사용처 | 단순 알림 | 상세 데이터 전달 |
+
+#### 이벤트 기반 아키텍처 장점
+```
+[직접 호출 - 강결합]
+A → B → C  (A가 B를 알아야 하고, B가 C를 알아야 함)
+
+[이벤트 기반 - 약결합]
+A → EventBus ← B
+       ↑
+       C
+(컴포넌트들이 서로 모르고 이벤트만 발행/구독)
+```
+
+- **느슨한 결합**: 컴포넌트 독립성 유지
+- **확장성**: 새 기능 추가가 쉬움
+- **테스트 용이**: 각 컴포넌트 독립 테스트 가능
+
+**프로젝트 사용 예**:
+- `CatEventSystem.OnInteraction`: 상호작용 이벤트
+- `CatEventSystem.OnBehaviorStateChanged`: 행동 상태 변경
+- `CatEventSystem.OnMoodStateChanged`: 기분 상태 변경
 
 ### 3. 코루틴 패턴
 ```csharp
@@ -577,6 +655,59 @@ CreateUserMessage()  // 사용자 메시지 생성
 - Ollama 로컬 서버 통신
 - 대화 기록 관리
 - 성장 단계별 프롬프트
+
+### CatEventSystem.cs (Core)
+**역할**: 이벤트 중앙 관리 (싱글톤)
+**주요 기능**:
+- 모든 상호작용 이벤트 발행/구독
+- 행동 상태/기분 상태 관리
+
+**핵심 메서드**:
+```csharp
+TriggerFeed(position)         // 밥 먹기 이벤트
+TriggerPet(intensity, pos)    // 쓰다듬기 이벤트
+TriggerPlay(intensity, pos)   // 놀기 이벤트
+SetBehaviorState(state)       // 행동 상태 변경
+SetMoodState(mood)            // 기분 상태 변경
+```
+
+### CatBehaviorController.cs (Core)
+**역할**: 행동/반응 처리 컨트롤러
+**주요 기능**:
+- 이벤트 수신 → 애니메이션/이펙트 재생
+- 친밀도 증가/감소 중앙 관리
+- AI 반응 트리거 (확률적)
+
+**이벤트 처리 흐름**:
+```
+CatEventSystem.OnInteraction → HandleInteraction()
+  → OnFeed() / OnPet() / OnPlay() 등
+    → 애니메이션, 이펙트, 상태 변경
+```
+
+### CatMovement.cs
+**역할**: 고양이 자율 이동 및 행동
+**주요 기능**:
+- 자연스러운 자율 행동 (걷기/뛰기/그루밍/Idle)
+- 배고프면 자동으로 밥그릇으로 이동
+- 방향에 따른 스프라이트 반전
+
+**행동 상태**:
+```csharp
+Idle       // 가만히 있기 (2~8초)
+Walking    // 걷기 (1~4초)
+Running    // 뛰기 (20% 확률)
+Grooming   // 그루밍 (15% 확률)
+GoingToEat // 밥 먹으러 가는 중
+Eating     // 밥 먹는 중
+```
+
+### CatHunger.cs
+**역할**: 배고픔 관리 및 밥 조르기
+**주요 기능**:
+- 시간 경과에 따른 배고픔 증가
+- 배고프고 밥 없으면 채팅으로 조르기
+- 배고픔 단계별 다른 메시지
 
 ---
 

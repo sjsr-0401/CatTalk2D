@@ -89,6 +89,9 @@ namespace CatTalk2D.UI
         {
             Debug.Log("[ChatUI] Start() 호출됨");
 
+            // OllamaAPIManager 확인 및 자동 생성
+            EnsureOllamaAPIManager();
+
             // 엔터 키로 전송
             if (_inputField != null)
             {
@@ -264,6 +267,35 @@ namespace CatTalk2D.UI
         public void CatSpeakFirst(string message)
         {
             AddCatMessage(message);
+        }
+
+        /// <summary>
+        /// OllamaAPIManager가 없으면 자동 생성
+        /// </summary>
+        private void EnsureOllamaAPIManager()
+        {
+            if (CatTalk2D.API.OllamaAPIManager.Instance == null)
+            {
+                Debug.Log("[ChatUI] OllamaAPIManager가 없어서 자동 생성합니다.");
+
+                // 기존 OllamaAPIManager 찾기
+                var existingManager = FindObjectOfType<CatTalk2D.API.OllamaAPIManager>();
+                if (existingManager == null)
+                {
+                    // 새로 생성
+                    GameObject ollamaObj = new GameObject("OllamaAPIManager");
+                    ollamaObj.AddComponent<CatTalk2D.API.OllamaAPIManager>();
+                    Debug.Log("[ChatUI] OllamaAPIManager 자동 생성 완료");
+                }
+                else
+                {
+                    Debug.Log("[ChatUI] 기존 OllamaAPIManager 발견");
+                }
+            }
+            else
+            {
+                Debug.Log("[ChatUI] OllamaAPIManager 이미 존재함");
+            }
         }
 
         /// <summary>

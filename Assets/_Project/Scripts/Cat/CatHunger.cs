@@ -1,116 +1,137 @@
 using UnityEngine;
 using CatTalk2D.Managers;
+using CatTalk2D.Core;
 using CatTalk2D.UI;
 
 namespace CatTalk2D.Cat
 {
     /// <summary>
     /// 고양이 배고픔 관리
-    /// 시간이 지나면 배고파하고, 밥그릇에 밥이 있으면 먹음
+    /// 시간이 지나면 배고픔 증가, 상황에 맞게 메시지 표시
+    /// (실제 밥 먹으러 가는 로직은 CatMovement에서 처리)
     /// </summary>
     public class CatHunger : MonoBehaviour
     {
         [Header("설정")]
         [SerializeField] private float _hungerIncreaseRate = 1f; // 1시간당 배고픔 증가량
-        [SerializeField] private float _checkInterval = 5f; // 밥그릇 체크 간격 (초)
+        [SerializeField] private float _askInterval = 30f; // 밥 조르기 간격 (초)
 
-        [Header("참조")]
-        [SerializeField] private CatInteraction _catInteraction;
-        [SerializeField] private CatMovement _catMovement;
-        [SerializeField] private FoodBowlUI _foodBowl;
+        [Header("배고픔 단계")]
+        [SerializeField] private float _hungryThreshold = 70f;  // 배고픔 시작
+        [SerializeField] private float _veryHungryThreshold = 90f; // 매우 배고픔
 
-        private float _lastCheckTime;
         private int _lastHour = -1;
-        private bool _isGoingToEat = false; // 밥 먹으러 가는 중인지
-        private bool _hasAskedForFood = false; // 이미 밥 달라고 했는지
-
-        private void Start()
-        {
-            if (_catInteraction == null)
-            {
-                _catInteraction = GetComponent<CatInteraction>();
-            }
-
-            if (_catMovement == null)
-            {
-                _catMovement = GetComponent<CatMovement>();
-            }
-
-            if (_foodBowl == null)
-            {
-                _foodBowl = Object.FindAnyObjectByType<FoodBowlUI>();
-            }
-
-            _lastCheckTime = Time.time;
-        }
+        private float _lastAskTime = -999f;
+        private int _askCount = 0; // 몇 번 졸랐는지
 
         private void Update()
         {
-            if (TimeManager.Instance == null || _catInteraction == null) return;
+            if (TimeManager.Instance == null) return;
+            if (CatBehaviorController.Instance == null) return;
+
+            var catState = CatBehaviorController.Instance.GetCatState();
+            var foodBowl = Object.FindAnyObjectByType<FoodBowlUI>();
 
             // 1시간 경과마다 배고픔 증가
             int currentHour = TimeManager.Instance.CurrentHour;
             if (currentHour != _lastHour)
             {
                 _lastHour = currentHour;
-                _catInteraction.GetCatState().IncreaseHunger(_hungerIncreaseRate);
+                catState.IncreaseHunger(_hungerIncreaseRate);
+                Debug.Log($"[CatHunger] 1시간 경과 - 배고픔: {catState.Hunger}");
             }
 
-            // 일정 시간마다 밥그릇 체크
-            if (Time.time - _lastCheckTime >= _checkInterval)
+            // 배고픔 상태 체크
+            if (catState.Hunger >= _hungryThreshold)
             {
-                _lastCheckTime = Time.time;
-                CheckAndEat();
-            }
-
-            // 밥 먹으러 가는 중이고 밥그릇에 도착했으면 먹기
-            if (_isGoingToEat && _catMovement != null && !_catMovement.IsMoving)
-            {
-                _isGoingToEat = false;
-                if (_foodBowl != null && _foodBowl.HasFood)
+                // 밥이 있으면 -> CatMovement가 알아서 먹으러 감
+                // 밥이 없으면 -> 조르기!
+                if (foodBowl == null || !foodBowl.HasFood)
                 {
-                    _foodBowl.CatEat();
+                    TryAskForFood(catState.Hunger);
                 }
+            }
+
+            // 배고픔 해소되면 초기화
+            if (catState.Hunger < _hungryThreshold)
+            {
+                _askCount = 0;
             }
         }
 
         /// <summary>
-        /// 배고프면 밥그릇으로 이동해서 먹기
+        /// 밥 달라고 조르기 (간격 제한 있음)
         /// </summary>
-        private void CheckAndEat()
+        private void TryAskForFood(float hunger)
         {
-            if (_foodBowl == null || _catMovement == null) return;
+            // 일정 시간마다만 말하기
+            if (Time.time - _lastAskTime < _askInterval) return;
 
-            var catState = _catInteraction.GetCatState();
+            _lastAskTime = Time.time;
+            _askCount++;
 
-            // 배고프고 밥그릇에 밥이 있으면 밥그릇으로 이동
-            if (catState.IsHungry && _foodBowl.HasFood && !_isGoingToEat)
+            string message = GetHungryMessage(hunger, _askCount);
+
+            Debug.Log($"[CatHunger] {message}");
+
+            // 채팅 UI에 메시지 표시
+            if (ChatUI.Instance != null)
             {
-                // 밥그릇 실제 위치로 이동 (BowlImage 위치)
-                Vector2 foodBowlPos = _foodBowl.BowlPosition;
-                Debug.Log($"😋 배고프다... 밥 먹으러 가야지! 목표 위치: {foodBowlPos}");
-
-                _catMovement.MoveTo(foodBowlPos);
-                _isGoingToEat = true;
+                ChatUI.Instance.CatSpeakFirst(message);
             }
-            // 배고픈데 밥이 없으면 말하기 (한 번만)
-            else if (catState.IsHungry && !_foodBowl.HasFood && !_hasAskedForFood)
-            {
-                _hasAskedForFood = true;
-                Debug.Log("😿 배고파... 밥 좀 줘!");
+        }
 
-                // 채팅 UI에 메시지 표시
-                if (UI.ChatUI.Instance != null)
+        /// <summary>
+        /// 배고픔 정도와 조른 횟수에 따라 다른 메시지
+        /// </summary>
+        private string GetHungryMessage(float hunger, int askCount)
+        {
+            // 매우 배고플 때 (90 이상)
+            if (hunger >= _veryHungryThreshold)
+            {
+                string[] veryHungryMessages =
                 {
-                    UI.ChatUI.Instance.CatSpeakFirst("배고프당.... 🥺");
-                }
+                    "배고파... 밥 줘...",
+                    "밥... 밥 달라고...",
+                    "너무 배고파ㅠㅠ",
+                    "밥그릇이 비었어...",
+                };
+                return veryHungryMessages[Random.Range(0, veryHungryMessages.Length)];
             }
 
-            // 밥을 받으면 플래그 초기화
-            if (_foodBowl.HasFood)
+            // 처음 조를 때
+            if (askCount <= 1)
             {
-                _hasAskedForFood = false;
+                string[] firstMessages =
+                {
+                    "배고프당...",
+                    "밥 먹고 싶어",
+                    "슬슬 배고픈데?",
+                };
+                return firstMessages[Random.Range(0, firstMessages.Length)];
             }
+
+            // 두 번째 조를 때
+            if (askCount == 2)
+            {
+                string[] secondMessages =
+                {
+                    "밥... 밥 줘!",
+                    "아직 안 줄 거야?",
+                    "배고프다니까~",
+                };
+                return secondMessages[Random.Range(0, secondMessages.Length)];
+            }
+
+            // 세 번 이상 조를 때
+            string[] persistentMessages =
+            {
+                "밥!!!",
+                "밥 달라고!!!",
+                "왜 안 줘ㅠㅠ",
+                "진짜 배고파...",
+            };
+            return persistentMessages[Random.Range(0, persistentMessages.Length)];
         }
     }
 }

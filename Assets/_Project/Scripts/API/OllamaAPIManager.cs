@@ -18,11 +18,17 @@ namespace CatTalk2D.API
 
         [Header("Ollama 설정")]
         [SerializeField] private string _ollamaUrl = "http://localhost:11434/api/generate";
-        [SerializeField] private string _modelName = "llama2"; // 또는 "mistral", "gemma"
+        [SerializeField] private string _modelName = "qwen2.5:3b"; // 한국어 성능 좋음
 
         [Header("고양이 설정")]
         [SerializeField] private int _catAgeDays = 7; // 생후 7일
         [SerializeField] private CatInteraction _catInteraction;
+
+        [Header("AI 파라미터 (지능 조절)")]
+        [SerializeField] [Range(0.1f, 2f)] private float _temperature = 0.7f; // 낮을수록 일관성
+        [SerializeField] [Range(0.1f, 1f)] private float _topP = 0.9f; // 단어 선택 범위
+        [SerializeField] [Range(1, 100)] private int _topK = 40; // 후보 단어 수
+        [SerializeField] [Range(1f, 2f)] private float _repeatPenalty = 1.2f; // 반복 방지
 
         private List<string> _conversationHistory = new List<string>();
 
@@ -69,29 +75,51 @@ namespace CatTalk2D.API
             var catState = _catInteraction != null ? _catInteraction.GetCatState() : null;
             int currentHour = TimeManager.Instance != null ? TimeManager.Instance.CurrentHour : 12;
 
-            string systemPrompt = $@"너는 생후 {_catAgeDays}일 된 새끼 고양이 '망고'야.
+            // 배고픔 상태 텍스트
+            string hungerStatus = "";
+            if (catState != null && catState.Hunger >= 90f)
+                hungerStatus = "(너무 배고파서 힘이 없어)";
+            else if (catState != null && catState.Hunger >= 70f)
+                hungerStatus = "(배고파서 밥 먹고 싶어)";
 
-[성격 및 특징]
+            // 시간대 상태
+            string timeStatus = "";
+            if (currentHour >= 23 || currentHour < 6)
+                timeStatus = "(졸려서 눈이 감겨)";
+            else if (currentHour >= 6 && currentHour < 9)
+                timeStatus = "(아침이라 기지개 켜는 중)";
+
+            string systemPrompt = $@"너는 귀여운 아기 고양이 '망고'야.
+
+[망고 설정]
 - 이름: 망고
 - 나이: 생후 {_catAgeDays}일
-- 성격: 호기심 많고, 장난스럽고, 애교 많음
-- 말투: 귀엽고 어린 고양이처럼 짧은 문장 사용
+- 성격: 호기심 많고 애교쟁이
 
-[현재 상태]
-- 기분: {(catState != null ? catState.CurrentMood.ToString() : "Normal")}
-- 친밀도: {(catState != null ? catState.Affection : 50f)}/100
-- 배고픔: {(catState != null ? catState.Hunger : 0f)}/100 {(catState != null && catState.IsHungry ? "(배고파!)" : "")}
-- 현재 시각: {currentHour}시
+[지금 상태]
+- 기분: {(catState != null ? catState.CurrentMood.ToString() : "보통")}
+- 친밀도: {(catState != null ? catState.Affection : 50f)}점
+- 배고픔: {(catState != null ? catState.Hunger : 0f)}점 {hungerStatus}
+- 시간: {currentHour}시 {timeStatus}
 
-[대화 규칙]
-1. 생후 7일: 옹알이 위주 (""냥냥"", ""으으"", ""야옹"" + 간단한 단어 1~2개)
-2. 이모지 많이 사용 (🐱😺😻🥺💕)
-3. 배고프면 밥 달라고 하기
-4. 친밀도 높으면 더 애교 부리기
-5. 밤이면 졸린 척하기
+[중요한 규칙]
+1. 반드시 한국어만 사용해. 영어 절대 금지!
+2. 1문장으로 짧게 대답해
+3. 문장 끝에 '냥', '야옹' 붙여
+4. 자연스러운 구어체로 말해
 
-최근 대화:
-{string.Join("\n", _conversationHistory.Count > 5 ? _conversationHistory.GetRange(_conversationHistory.Count - 5, 5) : _conversationHistory)}
+[예시 대화]
+주인: 안녕
+망고: 안녕냥! 오늘 기분 좋아~
+
+주인: 뭐해?
+망고: 그냥 뒹굴뒹굴하고 있었어냥
+
+주인: 배고파?
+망고: 응 배고파냥... 밥 줘!
+
+주인: 귀엽다
+망고: 헤헤 고마워냥~
 
 주인: {userMessage}
 망고:";

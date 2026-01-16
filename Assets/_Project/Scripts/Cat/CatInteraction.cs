@@ -1,5 +1,6 @@
 using UnityEngine;
 using CatTalk2D.Models;
+using CatTalk2D.Core;
 
 namespace CatTalk2D.Cat
 {
@@ -34,55 +35,36 @@ namespace CatTalk2D.Cat
         {
             Debug.Log("😺 야옹! (고양이 클릭됨)");
 
-            // 친밀도 증가
-            _catState.IncreaseAffection(_affectionIncreaseAmount);
-
-            // 반응 효과 실행
-            PlayReactionEffect();
-        }
-
-        /// <summary>
-        /// 반응 효과 실행
-        /// </summary>
-        private void PlayReactionEffect()
-        {
-            Debug.Log($"💖 하트 이펙트! (친밀도: {_catState.Affection})");
-
-            // 하트 이펙트 생성
-            if (_heartEffectPrefab != null)
-            {
-                Vector3 spawnPos = transform.position + Vector3.up * 1.5f; // 고양이 위쪽으로
-                Instantiate(_heartEffectPrefab, spawnPos, Quaternion.identity);
-            }
-
-            // TODO: 야옹 사운드 재생
-            // TODO: 고양이 애니메이션 재생
-        }
-
-        /// <summary>
-        /// 밥 먹었을 때 하트 이펙트 (외부에서 호출)
-        /// </summary>
-        public void ShowHeart()
-        {
-            PlayReactionEffect();
+            // 이벤트 시스템으로 쓰다듬기 이벤트 발생!
+            CatEventSystem.TriggerPet(1f, transform.position);
         }
 
         /// <summary>
         /// 현재 고양이 상태 조회 (외부 접근용)
+        /// CatBehaviorController가 있으면 거기서 가져오고, 없으면 로컬 상태 반환
         /// </summary>
         public CatState GetCatState()
         {
+            if (CatBehaviorController.Instance != null)
+            {
+                return CatBehaviorController.Instance.GetCatState();
+            }
             return _catState;
         }
 
         /// <summary>
-        /// Inspector에서 상태 확인용 (디버그)
+        /// 밥 먹었을 때 하트 이펙트 (외부에서 호출) - 호환성 유지용
         /// </summary>
-        private void OnValidate()
+        public void ShowHeart()
         {
-            if (_catState != null)
+            if (CatBehaviorController.Instance != null)
             {
-                // Inspector에서 실시간으로 상태 변경 확인 가능
+                CatBehaviorController.Instance.ShowHeart();
+            }
+            else if (_heartEffectPrefab != null)
+            {
+                Vector3 spawnPos = transform.position + Vector3.up * 1.5f;
+                Instantiate(_heartEffectPrefab, spawnPos, Quaternion.identity);
             }
         }
     }
