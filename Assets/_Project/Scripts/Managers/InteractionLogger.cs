@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -42,6 +42,23 @@ namespace CatTalk2D.Managers
             StartNewSession();
         }
 
+        private void OnEnable()
+        {
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnGameDateChanged -= OnGameDateChanged;
+                TimeManager.Instance.OnGameDateChanged += OnGameDateChanged;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnGameDateChanged -= OnGameDateChanged;
+            }
+        }
+
         private void OnApplicationQuit()
         {
             SaveSession();
@@ -83,12 +100,6 @@ namespace CatTalk2D.Managers
             string fileName = $"session_{DateTime.Now:yyyyMMdd_HHmmss}.json";
             _sessionFilePath = Path.Combine(logFolder, fileName);
 
-            // 날짜 변경 이벤트 구독
-            if (TimeManager.Instance != null)
-            {
-                TimeManager.Instance.OnGameDateChanged += OnGameDateChanged;
-            }
-
             Debug.Log($"[InteractionLogger] 새 세션 시작: {_sessionFilePath}");
         }
 
@@ -128,12 +139,13 @@ namespace CatTalk2D.Managers
             var record = new InteractionRecord
             {
                 timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
-                actionType = actionType,
+                actionType = NormalizeActionType(actionType),
                 gameDate = TimeManager.Instance?.GameDateString ?? "",
                 catAgeDays = TimeManager.Instance?.CatAgeDays ?? 0,
                 userText = userText ?? "",
                 aiText = aiText ?? "",
                 state = stateSnapshot,
+                snapshot = stateSnapshot,
                 payload = payload ?? ""
             };
 
@@ -146,6 +158,19 @@ namespace CatTalk2D.Managers
             {
                 SaveSession();
             }
+        }
+
+        private string NormalizeActionType(string actionType)
+        {
+            if (string.IsNullOrEmpty(actionType)) return "Unknown";
+            return actionType switch
+            {
+                "talk" => "Talk",
+                "monologue" => "Monologue",
+                "day_changed" => "DayChanged",
+                "dev_override" => "DevOverride",
+                _ => actionType
+            };
         }
 
         /// <summary>
@@ -253,6 +278,7 @@ namespace CatTalk2D.Managers
         public string userText;    // 사용자 입력 (대화일 때)
         public string aiText;      // AI 응답 (대화/혼잣말일 때)
         public CatStateSnapshot state;  // 상태 스냅샷
+        public CatStateSnapshot snapshot;
         public string payload;     // 추가 데이터 (JSON 문자열)
     }
 

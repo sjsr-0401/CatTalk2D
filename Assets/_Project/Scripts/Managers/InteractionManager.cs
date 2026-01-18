@@ -72,7 +72,7 @@ namespace CatTalk2D.Managers
             TriggerAnimation("Eat");
 
             // 이벤트 발생 → CatStateManager가 처리
-            CatEventSystem.RaiseInteraction(this, CatEventSystem.InteractionType.Feed);
+            CatEventSystem.TriggerInteraction(CatEventSystem.InteractionType.Feed);
 
             // 반응 메시지
             ShowReactionMessage("냠냠! 맛있다냥~");
@@ -105,7 +105,7 @@ namespace CatTalk2D.Managers
             TriggerAnimation(likesIt ? "PetHappy" : "PetDislike");
 
             // 이벤트 발생
-            CatEventSystem.RaiseInteraction(this, CatEventSystem.InteractionType.Pet);
+            CatEventSystem.TriggerInteraction(CatEventSystem.InteractionType.Pet);
 
             // 반응 메시지
             if (likesIt)
@@ -150,7 +150,7 @@ namespace CatTalk2D.Managers
             TriggerAnimation("Play");
 
             // 이벤트 발생
-            CatEventSystem.RaiseInteraction(this, CatEventSystem.InteractionType.Play);
+            CatEventSystem.TriggerInteraction(CatEventSystem.InteractionType.Play);
 
             // 반응 메시지
             ShowReactionMessage("야호! 신난다냥!");

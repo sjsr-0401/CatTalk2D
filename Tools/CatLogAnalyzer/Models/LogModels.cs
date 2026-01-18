@@ -60,6 +60,12 @@ public class InteractionRecord
     [JsonPropertyName("state")]
     public CatStateSnapshot? State { get; set; }
 
+    [JsonPropertyName("snapshot")]
+    public CatStateSnapshot? Snapshot { get; set; }
+
+    [JsonIgnore]
+    public CatStateSnapshot? EffectiveSnapshot => Snapshot ?? State;
+
     [JsonIgnore]
     public DateTime? ParsedTimestamp => DateTime.TryParse(Timestamp, out var result) ? result : null;
 

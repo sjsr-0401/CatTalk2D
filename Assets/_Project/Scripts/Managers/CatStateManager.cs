@@ -36,6 +36,8 @@ namespace CatTalk2D.Managers
         public AgeLevel AgeLevel => _ageLevel;
         #endregion
 
+        private TimeManager _timeManager;
+
         #region Unity Lifecycle
         private void Awake()
         {
@@ -53,9 +55,10 @@ namespace CatTalk2D.Managers
         private void OnEnable()
         {
             // 시간 변화 이벤트 구독
-            if (TimeManager.Instance != null)
+            _timeManager = TimeManager.Instance;
+            if (_timeManager != null)
             {
-                TimeManager.Instance.OnHourChanged += OnHourChanged;
+                _timeManager.OnHourChanged += OnHourChanged;
             }
 
             // 상호작용 이벤트 구독
@@ -64,10 +67,11 @@ namespace CatTalk2D.Managers
 
         private void OnDisable()
         {
-            if (TimeManager.Instance != null)
+            if (_timeManager != null)
             {
-                TimeManager.Instance.OnHourChanged -= OnHourChanged;
+                _timeManager.OnHourChanged -= OnHourChanged;
             }
+            _timeManager = null;
 
             CatEventSystem.OnInteraction -= OnInteraction;
         }
