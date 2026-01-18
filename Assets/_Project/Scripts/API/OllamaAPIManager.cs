@@ -19,7 +19,10 @@ namespace CatTalk2D.API
 
         [Header("Ollama 설정")]
         [SerializeField] private string _ollamaUrl = "http://localhost:11434/api/generate";
-        [SerializeField] private string _modelName = "qwen2.5:3b";
+        [SerializeField] private string _modelName = "aya:8b";
+
+        [Header("응답 필터")]
+        [SerializeField] private int _maxRetryOnEnglish = 2;
 
         [Header("고양이 설정")]
         [SerializeField] private int _catAgeDays = 7;
@@ -118,42 +121,19 @@ namespace CatTalk2D.API
             // 시간대 상태
             string timeStatus = GetTimeStatus(currentHour);
 
-            string systemPrompt = $@"너는 귀여운 고양이 '망고'야.
+            string systemPrompt = $@"너는 고양이 망고야. 한국어로만 대답해.
 
-[망고 프로필]
-- 이름: 망고
-- 나이: 생후 {_catAgeDays}일 ({ageStyle})
-- 성격: {personalityText}
+성격: {personalityText}
+기분: {moodDescription}
 
-[현재 상태]
-- 기분: {moodDescription}
-- 친밀도: {affectionTier} ({affectionStyle})
-- 배고픔: {(catState?.Hunger ?? 0):F0}점
-- 스트레스: {(catState?.Stress ?? 0):F0}점
-- 재미: {(catState?.Fun ?? 50):F0}점
-- 시간: {currentHour}시 {timeStatus}
+예시:
+사람: 안녕 → 망고: 안녕냥~
+사람: 뭐해? → 망고: 뒹굴거려냥
+사람: 배고파? → 망고: 응 밥줘냥!
+사람: 귀엽다 → 망고: 헤헤 고마워냥~
+사람: 심심해 → 망고: 나랑 놀자냥!
 
-[말투 규칙]
-1. 반드시 한국어만 써. 영어 금지!
-2. 1문장으로 짧게 (20자 이내)
-3. 문장 끝에 '냥' 또는 '야옹' 붙여
-4. {affectionStyle}
-5. 자연스러운 구어체로 말해
-
-[예시]
-주인: 안녕
-망고: 안녕냥~
-
-주인: 뭐해?
-망고: 뒹굴뒹굴하고 있었어냥
-
-주인: 배고파?
-망고: 응 배고파냥... 밥 줘!
-
-주인: 귀엽다
-망고: 헤헤 고마워냥~
-
-주인: {userMessage}
+사람: {userMessage}
 망고:";
 
             return systemPrompt;
@@ -223,62 +203,89 @@ namespace CatTalk2D.API
         #endregion
 
         /// <summary>
-        /// Ollama API 호출
+        /// Ollama API 호출 (영어 감지 시 재시도)
         /// </summary>
         private IEnumerator SendToOllama(string prompt, System.Action<string> onResponse)
         {
-            var requestData = new OllamaRequestWithOptions
+            string finalResponse = null;
+            int retryCount = 0;
+
+            while (retryCount <= _maxRetryOnEnglish)
             {
-                model = _modelName,
-                prompt = prompt,
-                stream = false,
-                options = new OllamaOptions
+                var requestData = new OllamaRequestWithOptions
                 {
-                    temperature = _temperature,
-                    top_p = _topP,
-                    top_k = _topK,
-                    repeat_penalty = _repeatPenalty
-                }
-            };
-
-            string jsonData = JsonUtility.ToJson(requestData);
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
-
-            using (UnityWebRequest request = new UnityWebRequest(_ollamaUrl, "POST"))
-            {
-                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "application/json");
-                request.timeout = 30;
-
-                yield return request.SendWebRequest();
-
-                if (request.result == UnityWebRequest.Result.Success)
-                {
-                    string responseText = request.downloadHandler.text;
-                    OllamaResponse response = JsonUtility.FromJson<OllamaResponse>(responseText);
-
-                    if (!string.IsNullOrEmpty(response.response))
+                    model = _modelName,
+                    prompt = prompt,
+                    stream = false,
+                    options = new OllamaOptions
                     {
-                        string cleanResponse = CleanResponse(response.response);
-                        onResponse?.Invoke(cleanResponse);
+                        temperature = _temperature + (retryCount * 0.1f), // 재시도 시 온도 약간 증가
+                        top_p = _topP,
+                        top_k = _topK,
+                        repeat_penalty = _repeatPenalty
+                    }
+                };
+
+                string jsonData = JsonUtility.ToJson(requestData);
+                byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+
+                using (UnityWebRequest request = new UnityWebRequest(_ollamaUrl, "POST"))
+                {
+                    request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                    request.SetRequestHeader("Content-Type", "application/json");
+                    request.timeout = 30;
+
+                    yield return request.SendWebRequest();
+
+                    if (request.result == UnityWebRequest.Result.Success)
+                    {
+                        string responseText = request.downloadHandler.text;
+                        OllamaResponse response = JsonUtility.FromJson<OllamaResponse>(responseText);
+
+                        if (!string.IsNullOrEmpty(response.response))
+                        {
+                            string cleanResponse = CleanResponse(response.response);
+
+                            // 영어 포함 확인
+                            if (ContainsEnglish(cleanResponse))
+                            {
+                                Debug.LogWarning($"[OllamaAPI] 영어 감지됨 (시도 {retryCount + 1}): {cleanResponse}");
+                                retryCount++;
+
+                                if (retryCount > _maxRetryOnEnglish)
+                                {
+                                    // 최대 재시도 초과 → 대체 응답
+                                    finalResponse = GetFallbackResponse();
+                                    Debug.Log($"[OllamaAPI] 대체 응답 사용: {finalResponse}");
+                                }
+                                continue;
+                            }
+
+                            finalResponse = cleanResponse;
+                            break;
+                        }
+                        else
+                        {
+                            Debug.LogError("Ollama 응답이 비어있습니다.");
+                            finalResponse = "냥?";
+                            break;
+                        }
                     }
                     else
                     {
-                        Debug.LogError("Ollama 응답이 비어있습니다.");
-                        onResponse?.Invoke("냥?");
+                        Debug.LogError($"Ollama API 오류: {request.error}");
+                        finalResponse = "냥냥...";
+                        break;
                     }
                 }
-                else
-                {
-                    Debug.LogError($"Ollama API 오류: {request.error}");
-                    onResponse?.Invoke("냥냥...");
-                }
             }
+
+            onResponse?.Invoke(finalResponse ?? GetFallbackResponse());
         }
 
         /// <summary>
-        /// 응답 정리 (너무 길면 자르기, 영어 제거 등)
+        /// 응답 정리 (첫 문장만, 길이 제한)
         /// </summary>
         private string CleanResponse(string response)
         {
@@ -291,13 +298,86 @@ namespace CatTalk2D.API
                 response = response.Substring(0, newlineIndex);
             }
 
-            // 너무 길면 자르기
-            if (response.Length > 50)
+            // 첫 문장만 (마침표, 느낌표, 물음표 기준)
+            foreach (char endChar in new[] { '.', '!', '?', '~' })
             {
-                response = response.Substring(0, 50) + "냥";
+                int idx = response.IndexOf(endChar);
+                if (idx > 0 && idx < response.Length - 1)
+                {
+                    response = response.Substring(0, idx + 1);
+                    break;
+                }
+            }
+
+            // 너무 길면 자르기 (30자)
+            if (response.Length > 30)
+            {
+                response = response.Substring(0, 30) + "냥";
+            }
+
+            // 냥/야옹 없으면 추가
+            if (!response.Contains("냥") && !response.Contains("야옹"))
+            {
+                response = response.TrimEnd('.', '!', '?', '~', ' ') + "냥";
             }
 
             return response;
+        }
+
+        /// <summary>
+        /// 비한국어 문자 포함 여부 확인 (한글, 숫자, 기본 문장부호만 허용)
+        /// </summary>
+        private bool ContainsEnglish(string text)
+        {
+            foreach (char c in text)
+            {
+                // 허용: 한글 (가-힣, ㄱ-ㅎ, ㅏ-ㅣ)
+                if (c >= '가' && c <= '힣') continue;
+                if (c >= 'ㄱ' && c <= 'ㅎ') continue;
+                if (c >= 'ㅏ' && c <= 'ㅣ') continue;
+
+                // 허용: 숫자
+                if (c >= '0' && c <= '9') continue;
+
+                // 허용: 기본 문장부호/공백
+                if (" .,!?~-…·:;'\"()[]<>".Contains(c)) continue;
+
+                // 그 외 문자 (영어, 악센트 문자 등) → 필터링
+                if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c > 127)
+                {
+                    // 일본어/중국어도 일단 허용 (나중에 필요하면 추가)
+                    if ((c >= 0x4E00 && c <= 0x9FFF) || // 한자
+                        (c >= 0x3040 && c <= 0x309F) || // 히라가나
+                        (c >= 0x30A0 && c <= 0x30FF))   // 카타카나
+                    {
+                        continue;
+                    }
+
+                    Debug.Log($"[ContainsEnglish] 필터링 문자 감지: '{c}' (U+{((int)c):X4})");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 영어 포함 시 대체 응답 반환
+        /// </summary>
+        private string GetFallbackResponse()
+        {
+            string[] fallbacks = {
+                "냥?",
+                "뭐냥~",
+                "응냥!",
+                "헤헤냥",
+                "야옹~",
+                "알았다냥",
+                "좋아냥!",
+                "싫어냥...",
+                "몰라냥",
+                "그래냥~"
+            };
+            return fallbacks[Random.Range(0, fallbacks.Length)];
         }
 
         /// <summary>
@@ -319,6 +399,99 @@ namespace CatTalk2D.API
             onResponse?.Invoke(greeting);
 
             yield return null;
+        }
+
+        /// <summary>
+        /// 혼잣말 생성 (상태 변화 없이 텍스트만 생성)
+        /// </summary>
+        public IEnumerator GenerateMonologueCoroutine(string monologuePrompt, System.Action<string> onResponse)
+        {
+            var requestData = new OllamaRequestWithOptions
+            {
+                model = _modelName,
+                prompt = monologuePrompt,
+                stream = false,
+                options = new OllamaOptions
+                {
+                    temperature = _temperature + 0.2f, // 혼잣말은 좀 더 다양하게
+                    top_p = _topP,
+                    top_k = _topK,
+                    repeat_penalty = _repeatPenalty
+                }
+            };
+
+            string jsonData = JsonUtility.ToJson(requestData);
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+
+            using (UnityWebRequest request = new UnityWebRequest(_ollamaUrl, "POST"))
+            {
+                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                request.downloadHandler = new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.timeout = 15; // 혼잣말은 더 짧은 타임아웃
+
+                yield return request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    string responseText = request.downloadHandler.text;
+                    OllamaResponse response = JsonUtility.FromJson<OllamaResponse>(responseText);
+
+                    if (!string.IsNullOrEmpty(response.response))
+                    {
+                        string cleanResponse = CleanMonologueResponse(response.response);
+
+                        // 영어 포함 시 null 반환 (fallback 사용하도록)
+                        if (ContainsEnglish(cleanResponse))
+                        {
+                            Debug.LogWarning($"[OllamaAPI] 혼잣말 영어 감지: {cleanResponse}");
+                            onResponse?.Invoke(null);
+                        }
+                        else
+                        {
+                            onResponse?.Invoke(cleanResponse);
+                        }
+                    }
+                    else
+                    {
+                        onResponse?.Invoke(null);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[OllamaAPI] 혼잣말 API 오류: {request.error}");
+                    onResponse?.Invoke(null);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 혼잣말 응답 정리 (더 짧게)
+        /// </summary>
+        private string CleanMonologueResponse(string response)
+        {
+            response = response.Trim();
+
+            // 첫 줄만
+            int newlineIndex = response.IndexOf('\n');
+            if (newlineIndex > 0)
+            {
+                response = response.Substring(0, newlineIndex);
+            }
+
+            // 너무 길면 자르기 (20자)
+            if (response.Length > 20)
+            {
+                response = response.Substring(0, 20);
+            }
+
+            // 냥/야옹 없으면 추가
+            if (!response.Contains("냥") && !response.Contains("야옹"))
+            {
+                response = response.TrimEnd('.', '!', '?', '~', ' ') + "냥";
+            }
+
+            return response;
         }
     }
 

@@ -16,6 +16,14 @@ namespace CatTalk2D.Models
         [SerializeField] [Range(0, 100)] private float _stress = 0f;
         [SerializeField] [Range(0, 100)] private float _fun = 50f;
         [SerializeField] [Range(0, 100)] private float _affection = 50f;
+        [SerializeField] [Range(0, 100)] private float _trust = 30f;  // 신뢰도 (Phase 2)
+        #endregion
+
+        #region 경험치/레벨
+        [Header("경험치")]
+        [SerializeField] private int _experience = 0;
+        [SerializeField] private int _level = 1;
+        private const int EXP_PER_LEVEL = 100;  // 레벨당 필요 경험치
         #endregion
 
         #region 성격 (Personality) - 장기 성향
@@ -61,6 +69,28 @@ namespace CatTalk2D.Models
             get => _affection;
             set => _affection = Mathf.Clamp(value, 0f, 100f);
         }
+
+        public float Trust
+        {
+            get => _trust;
+            set => _trust = Mathf.Clamp(value, 0f, 100f);
+        }
+        #endregion
+
+        #region 프로퍼티 - 경험치/레벨
+        public int Experience
+        {
+            get => _experience;
+            set
+            {
+                _experience = Mathf.Max(0, value);
+                CheckLevelUp();
+            }
+        }
+
+        public int Level => _level;
+        public int ExpToNextLevel => (_level * EXP_PER_LEVEL) - _experience;
+        public float ExpProgress => (float)(_experience % EXP_PER_LEVEL) / EXP_PER_LEVEL;
         #endregion
 
         #region 프로퍼티 - 성격
@@ -264,6 +294,39 @@ namespace CatTalk2D.Models
         {
             Fun -= amount;
         }
+
+        /// <summary>
+        /// 경험치 획득
+        /// </summary>
+        public void GainExperience(int amount)
+        {
+            int before = _experience;
+            Experience += amount;
+            Debug.Log($"[CatState] 경험치 {before} → {_experience} (+{amount})");
+        }
+
+        /// <summary>
+        /// 레벨업 체크
+        /// </summary>
+        private void CheckLevelUp()
+        {
+            int newLevel = (_experience / EXP_PER_LEVEL) + 1;
+            if (newLevel > _level)
+            {
+                _level = newLevel;
+                Debug.Log($"[CatState] 레벨 업! Lv.{_level}");
+            }
+        }
+
+        /// <summary>
+        /// 신뢰도 증가
+        /// </summary>
+        public void IncreaseTrust(float amount)
+        {
+            float before = _trust;
+            Trust += amount;
+            Debug.Log($"[CatState] 신뢰도 {before:F0} → {_trust:F0} (+{amount})");
+        }
         #endregion
 
         #region 스냅샷 (로깅용)
@@ -279,6 +342,9 @@ namespace CatTalk2D.Models
                 stress = _stress,
                 fun = _fun,
                 affection = _affection,
+                trust = _trust,
+                experience = _experience,
+                level = _level,
                 playful = _playful,
                 shy = _shy,
                 aggressive = _aggressive,
@@ -324,6 +390,9 @@ namespace CatTalk2D.Models
         public float stress;
         public float fun;
         public float affection;
+        public float trust;
+        public int experience;
+        public int level;
         public float playful;
         public float shy;
         public float aggressive;

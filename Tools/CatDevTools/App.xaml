@@ -1,0 +1,72 @@
+<Application x:Class="CatDevTools.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:CatDevTools.Converters"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- 컨버터 -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:InvertBoolConverter x:Key="InvertBool"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibility"/>
+        <!-- 색상 -->
+        <Color x:Key="PrimaryColor">#FF6B35</Color>
+        <Color x:Key="BackgroundColor">#FFF8F4F0</Color>
+        <Color x:Key="CardColor">#FFFFFFFF</Color>
+        <Color x:Key="TextColor">#FF333333</Color>
+        <Color x:Key="SubTextColor">#FF888888</Color>
+        <Color x:Key="SuccessColor">#FF00B894</Color>
+        <Color x:Key="WarningColor">#FFFDCB6E</Color>
+        <Color x:Key="DangerColor">#FFD63031</Color>
+
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
+        <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
+        <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}"/>
+        <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}"/>
+        <SolidColorBrush x:Key="SubTextBrush" Color="{StaticResource SubTextColor}"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+
+        <!-- 카드 스타일 -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" Opacity="0.1" ShadowDepth="2"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 버튼 스타일 -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 슬라이더 스타일 -->
+        <Style TargetType="Slider">
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="100"/>
+            <Setter Property="TickFrequency" Value="10"/>
+            <Setter Property="IsSnapToTickEnabled" Value="True"/>
+        </Style>
+    </Application.Resources>
+</Application>

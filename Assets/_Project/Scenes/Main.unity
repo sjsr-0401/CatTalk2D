@@ -1666,7 +1666,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -3, z: 0}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 0.5}
+  m_LocalScale: {x: 0.15, y: 0.15, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1684,9 +1684,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CatTalk2D.Cat.CatInteraction
   _catState:
-    _currentMood: 1
-    _affection: 50
     _hunger: 0
+    _energy: 100
+    _stress: 0
+    _fun: 50
+    _affection: 50
+    _trust: 30
+    _experience: 0
+    _level: 1
+    _playful: 50
+    _shy: 50
+    _aggressive: 50
+    _curious: 50
+    _currentMood: 1
   _affectionIncreaseAmount: 5
   _heartEffectPrefab: {fileID: 0}
 --- !u!114 &1253065262
@@ -1701,10 +1711,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be522dabc6760344fad6e64f68aa0ad2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CatTalk2D.Cat.CatMovement
-  _moveSpeed: 3
+  _walkSpeed: 1.5
+  _runSpeed: 4
   _arrivalDistance: 0.1
-  _isMoving: 0
+  _minX: -6
+  _maxX: 6
+  _groundY: -2.5
+  _autoCalculateGround: 0
+  _windowBottomOffset: 0.5
+  _minIdleTime: 2
+  _maxIdleTime: 8
+  _minWalkTime: 1
+  _maxWalkTime: 4
+  _runChance: 0.2
+  _groomChance: 0.15
+  _spriteRenderer: {fileID: 0}
+  _foodBowl: {fileID: 0}
+  _windowPanel: {fileID: 0}
+  _currentBehavior: 0
   _targetPosition: {x: 0, y: 0}
+  _behaviorTimer: 0
+  _isMoving: 0
 --- !u!58 &1253065263
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -1754,10 +1781,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CatTalk2D.Cat.CatHunger
   _hungerIncreaseRate: 3
-  _checkInterval: 30
-  _catInteraction: {fileID: 0}
-  _catMovement: {fileID: 0}
-  _foodBowl: {fileID: 0}
+  _askInterval: 30
+  _hungryThreshold: 70
+  _veryHungryThreshold: 90
 --- !u!1 &1406105106
 GameObject:
   m_ObjectHideFlags: 0
@@ -1883,8 +1909,14 @@ MonoBehaviour:
   _timeScale: 60
   _startHour: 8
   _startMinute: 0
+  _startYear: 2025
+  _startMonth: 1
+  _startDay: 1
   _currentTime: 0
   _currentDay: 1
+  _gameYear: 0
+  _gameMonth: 0
+  _gameDayOfMonth: 0
 --- !u!4 &1518968549
 Transform:
   m_ObjectHideFlags: 0
@@ -1976,6 +2008,55 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1658638926}
   m_CullTransparentMesh: 1
+--- !u!1 &1913145682
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1913145684}
+  - component: {fileID: 1913145683}
+  m_Layer: 0
+  m_Name: DevToolsServer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1913145683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1913145682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e6f05600e70a940b74d03491b00a5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CatTalk2D.DevTools.DevToolsServer
+  _port: 9999
+  _enableServer: 1
+  _broadcastInterval: 0.5
+  _isRunning: 0
+  _connectedClients: 0
+--- !u!4 &1913145684
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1913145682}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 951.46924, y: 342.34583, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1922633433
 GameObject:
   m_ObjectHideFlags: 0
@@ -2318,3 +2399,4 @@ SceneRoots:
   - {fileID: 298244209}
   - {fileID: 2109103740}
   - {fileID: 1518968549}
+  - {fileID: 1913145684}

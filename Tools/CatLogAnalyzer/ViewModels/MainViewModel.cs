@@ -75,7 +75,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private Axis[] _valueAxis = new Axis[]
     {
-        new Axis { MinLimit = 0, MaxLimit = 100, Name = "값" }
+        new Axis
+        {
+            MinLimit = 0,
+            MaxLimit = 100,
+            NamePaint = new SolidColorPaint(SKColor.Parse("#666666")) { SKTypeface = SKFontManager.Default.MatchCharacter('가') },
+            LabelsPaint = new SolidColorPaint(SKColor.Parse("#666666")) { SKTypeface = SKFontManager.Default.MatchCharacter('가') },
+            NameTextSize = 10,
+            TextSize = 10
+        }
     };
 
     [ObservableProperty]
@@ -85,6 +93,18 @@ public partial class MainViewModel : ObservableObject
     private PolarAxis[] _personalityRadius = new PolarAxis[]
     {
         new PolarAxis { MinLimit = 0, MaxLimit = 100 }
+    };
+
+    [ObservableProperty]
+    private Axis[] _actionXAxis = new Axis[]
+    {
+        new Axis
+        {
+            Labels = new[] { "밥주기", "쓰다듬기", "놀기", "대화", "혼잣말" },
+            LabelsRotation = 0,
+            LabelsPaint = new SolidColorPaint(SKColor.Parse("#666666")) { SKTypeface = SKFontManager.Default.MatchCharacter('가') },
+            TextSize = 11
+        }
     };
 
     #endregion
@@ -205,8 +225,9 @@ public partial class MainViewModel : ObservableObject
             new Axis
             {
                 Labels = labels,
-                LabelsRotation = 45,
-                Name = "시간"
+                LabelsRotation = 0,
+                LabelsPaint = new SolidColorPaint(SKColor.Parse("#666666")) { SKTypeface = SKFontManager.Default.MatchCharacter('가') },
+                TextSize = 10
             }
         };
     }
@@ -342,7 +363,8 @@ public partial class MainViewModel : ObservableObject
             new PolarAxis
             {
                 Labels = labels,
-                LabelsRotation = LiveChartsCore.TangentAngle
+                LabelsPaint = new SolidColorPaint(SKColor.Parse("#666666")) { SKTypeface = SKFontManager.Default.MatchCharacter('가') },
+                TextSize = 11
             }
         };
     }

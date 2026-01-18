@@ -62,10 +62,13 @@ namespace CatTalk2D.Managers
         /// </summary>
         public void StartNewSession()
         {
+            string gameDate = TimeManager.Instance?.GameDateString ?? DateTime.Now.ToString("yyyy-MM-dd");
+
             _currentSession = new SessionLog
             {
                 sessionId = Guid.NewGuid().ToString(),
                 startTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                startGameDate = gameDate,
                 records = new List<InteractionRecord>()
             };
 
@@ -80,6 +83,12 @@ namespace CatTalk2D.Managers
             string fileName = $"session_{DateTime.Now:yyyyMMdd_HHmmss}.json";
             _sessionFilePath = Path.Combine(logFolder, fileName);
 
+            // 날짜 변경 이벤트 구독
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnGameDateChanged += OnGameDateChanged;
+            }
+
             Debug.Log($"[InteractionLogger] 새 세션 시작: {_sessionFilePath}");
         }
 
@@ -91,6 +100,7 @@ namespace CatTalk2D.Managers
             if (!_enableLogging || _currentSession == null) return;
 
             _currentSession.endTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            _currentSession.endGameDate = TimeManager.Instance?.GameDateString ?? DateTime.Now.ToString("yyyy-MM-dd");
             _currentSession.totalRecords = _currentSession.records.Count;
 
             try
@@ -111,7 +121,7 @@ namespace CatTalk2D.Managers
         /// 상호작용 로그 기록
         /// </summary>
         public void LogInteraction(string actionType, CatStateSnapshot stateSnapshot,
-                                   string userText = null, string aiText = null)
+                                   string userText = null, string aiText = null, string payload = null)
         {
             if (!_enableLogging || _currentSession == null) return;
 
@@ -119,9 +129,12 @@ namespace CatTalk2D.Managers
             {
                 timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
                 actionType = actionType,
+                gameDate = TimeManager.Instance?.GameDateString ?? "",
+                catAgeDays = TimeManager.Instance?.CatAgeDays ?? 0,
                 userText = userText ?? "",
                 aiText = aiText ?? "",
-                state = stateSnapshot
+                state = stateSnapshot,
+                payload = payload ?? ""
             };
 
             _currentSession.records.Add(record);
@@ -149,6 +162,45 @@ namespace CatTalk2D.Managers
         public void LogMonologue(string monologueText, CatStateSnapshot stateSnapshot)
         {
             LogInteraction("monologue", stateSnapshot, null, monologueText);
+        }
+
+        /// <summary>
+        /// 날짜 변경 로그 기록
+        /// </summary>
+        public void LogDayChanged(CatStateSnapshot stateSnapshot, string newGameDate, int catAgeDays)
+        {
+            string payload = JsonUtility.ToJson(new DayChangedPayload
+            {
+                newGameDate = newGameDate,
+                catAgeDays = catAgeDays
+            });
+            LogInteraction("day_changed", stateSnapshot, null, null, payload);
+        }
+
+        /// <summary>
+        /// DevTools 값 변경 로그 기록
+        /// </summary>
+        public void LogDevOverride(CatStateSnapshot stateSnapshot, string changedField, string oldValue, string newValue)
+        {
+            string payload = JsonUtility.ToJson(new DevOverridePayload
+            {
+                field = changedField,
+                oldValue = oldValue,
+                newValue = newValue
+            });
+            LogInteraction("dev_override", stateSnapshot, null, null, payload);
+        }
+
+        /// <summary>
+        /// 게임 날짜 변경 시 호출
+        /// </summary>
+        private void OnGameDateChanged(DateTime newDate, int catAgeDays)
+        {
+            var catState = CatStateManager.Instance?.CatState;
+            if (catState != null)
+            {
+                LogDayChanged(catState.CreateSnapshot(), newDate.ToString("yyyy-MM-dd"), catAgeDays);
+            }
         }
         #endregion
 
@@ -178,9 +230,12 @@ namespace CatTalk2D.Managers
     [Serializable]
     public class SessionLog
     {
+        public string schemaVersion = "1.1";
         public string sessionId;
         public string startTime;
         public string endTime;
+        public string startGameDate;  // 세션 시작 게임 날짜
+        public string endGameDate;    // 세션 종료 게임 날짜
         public int totalRecords;
         public List<InteractionRecord> records;
     }
@@ -192,10 +247,34 @@ namespace CatTalk2D.Managers
     public class InteractionRecord
     {
         public string timestamp;
-        public string actionType;  // feed, pet, play, talk, monologue
+        public string actionType;  // feed, pet, play, talk, monologue, day_changed, dev_override
+        public string gameDate;    // 게임 날짜 (YYYY-MM-DD)
+        public int catAgeDays;     // 고양이 생후 일수
         public string userText;    // 사용자 입력 (대화일 때)
         public string aiText;      // AI 응답 (대화/혼잣말일 때)
         public CatStateSnapshot state;  // 상태 스냅샷
+        public string payload;     // 추가 데이터 (JSON 문자열)
+    }
+
+    /// <summary>
+    /// 날짜 변경 페이로드
+    /// </summary>
+    [Serializable]
+    public class DayChangedPayload
+    {
+        public string newGameDate;
+        public int catAgeDays;
+    }
+
+    /// <summary>
+    /// DevTools 값 변경 페이로드
+    /// </summary>
+    [Serializable]
+    public class DevOverridePayload
+    {
+        public string field;
+        public string oldValue;
+        public string newValue;
     }
     #endregion
 }

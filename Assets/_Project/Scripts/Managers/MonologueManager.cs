@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using CatTalk2D.Models;
 using CatTalk2D.UI;
 using CatTalk2D.API;
@@ -98,16 +99,82 @@ namespace CatTalk2D.Managers
         }
 
         /// <summary>
-        /// 트리거 조건 확인
+        /// 트리거 조건 확인 (가중치 랜덤)
         /// </summary>
         private MonologueTrigger CheckTriggerCondition(CatState state)
         {
-            if (state.Hunger > 70f) return MonologueTrigger.Hungry;
-            if (state.Stress > 70f) return MonologueTrigger.Stressed;
-            if (state.Affection > 70f) return MonologueTrigger.Happy;
-            if (state.Fun < 30f) return MonologueTrigger.Bored;
+            // 조건별 가중치 수집
+            var candidates = new List<(MonologueTrigger trigger, float weight)>();
 
-            return MonologueTrigger.None;
+            // 배고픔: hunger가 낮을수록 가중치 높음 (0~30 구간에서 활성)
+            if (state.Hunger < 30f)
+            {
+                float weight = (30f - state.Hunger) / 30f * 100f; // 0~100
+                candidates.Add((MonologueTrigger.Hungry, weight));
+            }
+
+            // 피곤: energy가 낮을수록 가중치 높음
+            if (state.Energy < 30f)
+            {
+                float weight = (30f - state.Energy) / 30f * 80f; // 0~80
+                candidates.Add((MonologueTrigger.Tired, weight));
+            }
+
+            // 스트레스: stress가 높을수록 가중치 높음
+            if (state.Stress > 70f)
+            {
+                float weight = (state.Stress - 70f) / 30f * 90f; // 0~90
+                candidates.Add((MonologueTrigger.Stressed, weight));
+            }
+
+            // 심심: fun이 낮을수록 가중치 높음
+            if (state.Fun < 30f)
+            {
+                float weight = (30f - state.Fun) / 30f * 60f; // 0~60
+                candidates.Add((MonologueTrigger.Bored, weight));
+            }
+
+            // 행복: 호감도 높고 스트레스 낮을 때
+            if (state.Affection > 70f && state.Stress < 30f)
+            {
+                float weight = (state.Affection - 70f) / 30f * 50f; // 0~50
+                candidates.Add((MonologueTrigger.Happy, weight));
+            }
+
+            // 후보가 없으면 Idle 또는 None
+            if (candidates.Count == 0)
+            {
+                return Random.value < 0.3f ? MonologueTrigger.Idle : MonologueTrigger.None;
+            }
+
+            // 가중치 랜덤 선택
+            return SelectByWeight(candidates);
+        }
+
+        /// <summary>
+        /// 가중치 기반 랜덤 선택
+        /// </summary>
+        private MonologueTrigger SelectByWeight(List<(MonologueTrigger trigger, float weight)> candidates)
+        {
+            float totalWeight = 0f;
+            foreach (var c in candidates)
+            {
+                totalWeight += c.weight;
+            }
+
+            float randomValue = Random.value * totalWeight;
+            float cumulative = 0f;
+
+            foreach (var c in candidates)
+            {
+                cumulative += c.weight;
+                if (randomValue <= cumulative)
+                {
+                    return c.trigger;
+                }
+            }
+
+            return candidates[candidates.Count - 1].trigger;
         }
         #endregion
 
@@ -133,19 +200,15 @@ namespace CatTalk2D.Managers
             string prompt = BuildMonologuePrompt(state, trigger);
 
             string response = null;
-            yield return apiManager.SendMessageCoroutine(prompt, (r) => response = r);
+            yield return apiManager.GenerateMonologueCoroutine(prompt, (r) => response = r);
 
             if (!string.IsNullOrEmpty(response))
             {
-                // 응답이 너무 길면 자르기
-                if (response.Length > 50)
-                {
-                    response = response.Substring(0, 50) + "...";
-                }
                 ShowMonologue(response, state);
             }
             else
             {
+                // API 실패 또는 영어 감지 시 fallback 사용
                 ShowMonologue(GetFallbackMonologue(trigger), state);
             }
 
@@ -160,9 +223,11 @@ namespace CatTalk2D.Managers
             string situation = trigger switch
             {
                 MonologueTrigger.Hungry => "배가 고파서",
+                MonologueTrigger.Tired => "피곤해서",
                 MonologueTrigger.Stressed => "스트레스를 받아서",
                 MonologueTrigger.Happy => "기분이 좋아서",
                 MonologueTrigger.Bored => "심심해서",
+                MonologueTrigger.Idle => "그냥 멍때리다가",
                 _ => "그냥"
             };
 
@@ -177,9 +242,11 @@ namespace CatTalk2D.Managers
 
 [예시]
 - 배고플 때: 밥... 배고파냥
+- 피곤할 때: 졸려... 자고싶다냥
 - 기분 좋을 때: 흐흐 기분 좋다냥
 - 심심할 때: 심심해... 놀고싶어냥
 - 스트레스: 으으... 짜증나냥
+- 멍때릴 때: 냥냥... 뭐하지
 
 혼잣말:";
         }
@@ -197,10 +264,16 @@ namespace CatTalk2D.Managers
                     "꼬르륵... 배고파"
                 }[Random.Range(0, 3)],
 
+                MonologueTrigger.Tired => new string[] {
+                    "졸려냥...",
+                    "자고 싶다냥...",
+                    "눈이 감긴다냥..."
+                }[Random.Range(0, 3)],
+
                 MonologueTrigger.Stressed => new string[] {
                     "으으... 힘들어냥",
-                    "쉬고 싶다냥...",
-                    "피곤해..."
+                    "짜증나냥...",
+                    "스트레스 받아냥"
                 }[Random.Range(0, 3)],
 
                 MonologueTrigger.Happy => new string[] {
@@ -213,6 +286,12 @@ namespace CatTalk2D.Managers
                     "심심해냥...",
                     "놀아줘냥...",
                     "할 거 없다냥..."
+                }[Random.Range(0, 3)],
+
+                MonologueTrigger.Idle => new string[] {
+                    "냥냥...",
+                    "뭐하지냥...",
+                    "음냥~"
                 }[Random.Range(0, 3)],
 
                 _ => "냥..."
@@ -264,8 +343,10 @@ namespace CatTalk2D.Managers
     {
         None,
         Hungry,
+        Tired,
         Stressed,
         Happy,
-        Bored
+        Bored,
+        Idle
     }
 }

@@ -33,7 +33,7 @@
 
                 <!-- 헤더 -->
                 <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                    <TextBlock Text="🐱 CatTalk2D"
+                    <TextBlock Text="CatTalk2D"
                                FontSize="24" FontWeight="Bold"
                                Foreground="{StaticResource PrimaryBrush}"/>
                     <TextBlock Text="로그 분석기"
@@ -43,7 +43,7 @@
 
                 <!-- 폴더 선택 -->
                 <StackPanel Grid.Row="1" Margin="0,0,0,16">
-                    <Button Content="📁 폴더 선택"
+                    <Button Content="폴더 선택"
                             Command="{Binding SelectFolderCommand}"
                             Style="{StaticResource PrimaryButton}"/>
                     <TextBlock Text="{Binding LogFolderPath}"
@@ -100,31 +100,31 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                            <TextBlock Text="🧡 최고 호감도" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="최고 호감도" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
                             <TextBlock Text="{Binding Statistics.MaxAffection, StringFormat='{}{0:F1}'}"
                                        FontSize="28" FontWeight="Bold" Foreground="#E17055"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                            <TextBlock Text="😌 최저 스트레스" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="최저 스트레스" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
                             <TextBlock Text="{Binding Statistics.MinStress, StringFormat='{}{0:F1}'}"
                                        FontSize="28" FontWeight="Bold" Foreground="#00B894"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                            <TextBlock Text="📊 총 상호작용" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="총 상호작용" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
                             <TextBlock Text="{Binding Statistics.TotalInteractions}"
                                        FontSize="28" FontWeight="Bold" Foreground="#6C5CE7"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                            <TextBlock Text="💬 대화 횟수" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="대화 횟수" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
                             <TextBlock Text="{Binding Statistics.TalkCount}"
                                        FontSize="28" FontWeight="Bold" Foreground="#74B9FF"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="4" HorizontalAlignment="Center">
-                            <TextBlock Text="⏱️ 세션 시간" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
+                            <TextBlock Text="세션 시간" FontSize="11" Foreground="{StaticResource SubTextBrush}"/>
                             <TextBlock Text="{Binding Statistics.SessionDuration, StringFormat='{}{0:mm\\:ss}'}"
                                        FontSize="28" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
                         </StackPanel>
@@ -134,7 +134,7 @@
                 <!-- 호감도 차트 -->
                 <Border Style="{StaticResource CardStyle}" Margin="8,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="💕 호감도 변화" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBlock Text="호감도 변화" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
                         <lvc:CartesianChart Height="200"
                                            Series="{Binding AffectionSeries}"
                                            XAxes="{Binding TimeAxis}"
@@ -147,7 +147,7 @@
                 <Border Style="{StaticResource CardStyle}" Margin="8,0,0,16">
                     <StackPanel>
                         <Grid Margin="0,0,0,8">
-                            <TextBlock Text="📈 상태 변화" FontSize="16" FontWeight="SemiBold"/>
+                            <TextBlock Text="상태 변화" FontSize="16" FontWeight="SemiBold"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <CheckBox Content="배고픔" IsChecked="{Binding ShowHunger}" Margin="0,0,12,0"/>
                                 <CheckBox Content="스트레스" IsChecked="{Binding ShowStress}" Margin="0,0,12,0"/>
@@ -171,20 +171,17 @@
                     <!-- 행동 바 차트 -->
                     <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="8,0,8,16">
                         <StackPanel>
-                            <TextBlock Text="🎯 행동 분포" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <TextBlock Text="행동 분포" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
                             <lvc:CartesianChart Height="200"
-                                               Series="{Binding ActionSeries}">
-                                <lvc:CartesianChart.XAxes>
-                                    <lvc:Axis Labels="밥주기, 쓰다듬기, 놀기, 대화, 혼잣말"/>
-                                </lvc:CartesianChart.XAxes>
-                            </lvc:CartesianChart>
+                                               Series="{Binding ActionSeries}"
+                                               XAxes="{Binding ActionXAxis}"/>
                         </StackPanel>
                     </Border>
 
                     <!-- 성격 레이더 차트 -->
                     <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel>
-                            <TextBlock Text="😺 성격 분석" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <TextBlock Text="성격 분석" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
                             <lvc:PolarChart Height="200"
                                            Series="{Binding PersonalitySeries}"
                                            AngleAxes="{Binding PersonalityAngles}"
