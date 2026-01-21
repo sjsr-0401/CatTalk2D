@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using CatTalk2D.Models;
+using CatTalk2D.AI;
 
 namespace CatTalk2D.Managers
 {
@@ -10,6 +11,7 @@ namespace CatTalk2D.Managers
     /// 상호작용 로그 관리자
     /// - JSON 형식으로 세션별 로그 저장
     /// - 분석 도구에서 사용할 데이터 제공
+    /// - LoRA 학습용 데이터 수집
     /// </summary>
     public class InteractionLogger : MonoBehaviour
     {
@@ -182,6 +184,49 @@ namespace CatTalk2D.Managers
         }
 
         /// <summary>
+        /// 대화 로그 기록 (LoRA 학습용 확장 버전)
+        /// </summary>
+        public void LogConversationExtended(
+            string userText,
+            string aiText,
+            CatStateSnapshot stateSnapshot,
+            ControlInput controlInput,
+            string modelName,
+            string rawResponse,
+            int? score = null)
+        {
+            if (!_enableLogging || _currentSession == null) return;
+
+            var record = new InteractionRecord
+            {
+                timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                actionType = "Talk",
+                gameDate = TimeManager.Instance?.GameDateString ?? "",
+                catAgeDays = TimeManager.Instance?.CatAgeDays ?? 0,
+                userText = userText ?? "",
+                aiText = aiText ?? "",
+                state = stateSnapshot,
+                snapshot = stateSnapshot,
+                // LoRA 학습용 확장 필드
+                inputControl = controlInput != null ? ControlBuilder.ToJson(controlInput) : "",
+                modelName = modelName ?? "",
+                rawResponse = rawResponse ?? "",
+                finalResponse = aiText ?? "",
+                score = score
+            };
+
+            _currentSession.records.Add(record);
+
+            Debug.Log($"[InteractionLogger] 기록됨: Talk (확장) - 모델: {modelName}, 점수: {score?.ToString() ?? "미평가"}");
+
+            // 10개마다 자동 저장
+            if (_currentSession.records.Count % 10 == 0)
+            {
+                SaveSession();
+            }
+        }
+
+        /// <summary>
         /// 혼잣말 로그 기록
         /// </summary>
         public void LogMonologue(string monologueText, CatStateSnapshot stateSnapshot)
@@ -280,6 +325,13 @@ namespace CatTalk2D.Managers
         public CatStateSnapshot state;  // 상태 스냅샷
         public CatStateSnapshot snapshot;
         public string payload;     // 추가 데이터 (JSON 문자열)
+
+        // LoRA 학습용 확장 필드
+        public string inputControl;   // Control JSON (ControlBuilder.ToJson())
+        public string modelName;      // 사용된 모델 이름
+        public string rawResponse;    // LLM 원본 응답
+        public string finalResponse;  // 후처리된 최종 응답
+        public int? score;            // 사용자 평가 점수 (1-5, null=미평가)
     }
 
     /// <summary>

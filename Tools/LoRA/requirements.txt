@@ -1,0 +1,23 @@
+# CatTalk2D LoRA 튜닝 의존성
+# 설치: pip install -r requirements.txt
+
+# PyTorch (CUDA 11.8 버전)
+# 다른 CUDA 버전은 https://pytorch.org/get-started/locally/ 참조
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch>=2.0.0
+
+# Unsloth (빠른 LoRA 학습)
+unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
+
+# 필수 라이브러리
+transformers>=4.36.0
+datasets>=2.16.0
+peft>=0.7.0
+accelerate>=0.25.0
+bitsandbytes>=0.41.0
+trl>=0.7.0
+xformers
+
+# 추가 유틸리티
+sentencepiece
+protobuf

@@ -1,0 +1,325 @@
+<UserControl x:Class="CatDevTools.Views.DevToolsTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="16"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 왼쪽: 현재 상태 -->
+            <Border Grid.Column="0" Grid.Row="0" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="현재 상태" FontSize="16" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+
+                    <!-- 시간/날짜 정보 -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Column="0" Grid.Row="0" Text="게임 날짜" Foreground="{StaticResource SubTextBrush}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding GameDate}" FontWeight="SemiBold"/>
+
+                        <TextBlock Grid.Column="0" Grid.Row="1" Text="고양이 나이" Foreground="{StaticResource SubTextBrush}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="1" FontWeight="SemiBold">
+                            <Run Text="{Binding CatAgeDays}"/><Run Text="일"/>
+                        </TextBlock>
+
+                        <TextBlock Grid.Column="0" Grid.Row="2" Text="현재 시간" Foreground="{StaticResource SubTextBrush}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding CurrentTime}" FontWeight="SemiBold"/>
+                    </Grid>
+
+                    <Separator Margin="0,8"/>
+
+                    <!-- 레벨/경험치 -->
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Column="0" Grid.Row="0" Text="레벨" Foreground="{StaticResource SubTextBrush}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Level}" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryBrush}"/>
+
+                        <TextBlock Grid.Column="0" Grid.Row="1" Text="경험치" Foreground="{StaticResource SubTextBrush}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Experience}" FontWeight="SemiBold"/>
+
+                        <TextBlock Grid.Column="0" Grid.Row="2" Text="기분" Foreground="{StaticResource SubTextBrush}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding Mood}" FontWeight="SemiBold"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- 오른쪽: 상태값 표시 -->
+            <Border Grid.Column="2" Grid.Row="0" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="상태 수치" FontSize="16" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+
+                    <!-- 상태 바들 -->
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="배고픔" Foreground="{StaticResource SubTextBrush}"/>
+                        <ProgressBar Grid.Column="1" Value="{Binding CurrentHunger}"
+                                     Maximum="100" Height="8" Margin="8,0"
+                                     Foreground="#FFE17055"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentHunger, StringFormat={}{0:F0}}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="에너지" Foreground="{StaticResource SubTextBrush}"/>
+                        <ProgressBar Grid.Column="1" Value="{Binding CurrentEnergy}"
+                                     Maximum="100" Height="8" Margin="8,0"
+                                     Foreground="#FF00B894"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentEnergy, StringFormat={}{0:F0}}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="스트레스" Foreground="{StaticResource SubTextBrush}"/>
+                        <ProgressBar Grid.Column="1" Value="{Binding CurrentStress}"
+                                     Maximum="100" Height="8" Margin="8,0"
+                                     Foreground="#FFD63031"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentStress, StringFormat={}{0:F0}}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="재미" Foreground="{StaticResource SubTextBrush}"/>
+                        <ProgressBar Grid.Column="1" Value="{Binding CurrentFun}"
+                                     Maximum="100" Height="8" Margin="8,0"
+                                     Foreground="#FFFDCB6E"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentFun, StringFormat={}{0:F0}}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="호감도" Foreground="{StaticResource SubTextBrush}"/>
+                        <ProgressBar Grid.Column="1" Value="{Binding CurrentAffection}"
+                                     Maximum="100" Height="8" Margin="8,0"
+                                     Foreground="#FFE84393"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentAffection, StringFormat={}{0:F0}}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="신뢰도" Foreground="{StaticResource SubTextBrush}"/>
+                        <ProgressBar Grid.Column="1" Value="{Binding CurrentTrust}"
+                                     Maximum="100" Height="8" Margin="8,0"
+                                     Foreground="#FF6C5CE7"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentTrust, StringFormat={}{0:F0}}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Separator Margin="0,12,0,8"/>
+
+                    <!-- 성격 -->
+                    <TextBlock Text="성격" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Column="0" Grid.Row="0">
+                            <Run Text="장난기: " Foreground="{StaticResource SubTextBrush}"/>
+                            <Run Text="{Binding Playful, StringFormat={}{0:F0}}"/>
+                        </TextBlock>
+                        <TextBlock Grid.Column="1" Grid.Row="0">
+                            <Run Text="소심함: " Foreground="{StaticResource SubTextBrush}"/>
+                            <Run Text="{Binding Shy, StringFormat={}{0:F0}}"/>
+                        </TextBlock>
+                        <TextBlock Grid.Column="0" Grid.Row="1">
+                            <Run Text="까칠함: " Foreground="{StaticResource SubTextBrush}"/>
+                            <Run Text="{Binding Aggressive, StringFormat={}{0:F0}}"/>
+                        </TextBlock>
+                        <TextBlock Grid.Column="1" Grid.Row="1">
+                            <Run Text="호기심: " Foreground="{StaticResource SubTextBrush}"/>
+                            <Run Text="{Binding Curious, StringFormat={}{0:F0}}"/>
+                        </TextBlock>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- 왼쪽 하단: 상태 편집 -->
+            <Border Grid.Column="0" Grid.Row="2" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="상태 편집" FontSize="16" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrush}"/>
+                        <Button Content="현재값 불러오기" Command="{Binding SyncEditValuesCommand}"
+                                HorizontalAlignment="Right" Padding="8,4"
+                                FontSize="11" Background="{StaticResource SubTextBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    </Grid>
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="28"/>
+                            <RowDefinition Height="28"/>
+                            <RowDefinition Height="28"/>
+                            <RowDefinition Height="28"/>
+                            <RowDefinition Height="28"/>
+                            <RowDefinition Height="28"/>
+                            <RowDefinition Height="28"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="배고픔" VerticalAlignment="Center"/>
+                        <Slider Grid.Row="0" Grid.Column="1" Value="{Binding EditHunger}" Margin="8,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding EditHunger, StringFormat={}{0:F0}}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="1" Text="에너지" VerticalAlignment="Center"/>
+                        <Slider Grid.Row="1" Grid.Column="1" Value="{Binding EditEnergy}" Margin="8,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding EditEnergy, StringFormat={}{0:F0}}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="2" Text="스트레스" VerticalAlignment="Center"/>
+                        <Slider Grid.Row="2" Grid.Column="1" Value="{Binding EditStress}" Margin="8,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding EditStress, StringFormat={}{0:F0}}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="3" Text="재미" VerticalAlignment="Center"/>
+                        <Slider Grid.Row="3" Grid.Column="1" Value="{Binding EditFun}" Margin="8,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding EditFun, StringFormat={}{0:F0}}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="4" Text="호감도" VerticalAlignment="Center"/>
+                        <Slider Grid.Row="4" Grid.Column="1" Value="{Binding EditAffection}" Margin="8,0"/>
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding EditAffection, StringFormat={}{0:F0}}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="5" Text="신뢰도" VerticalAlignment="Center"/>
+                        <Slider Grid.Row="5" Grid.Column="1" Value="{Binding EditTrust}" Margin="8,0"/>
+                        <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding EditTrust, StringFormat={}{0:F0}}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="6" Text="경험치" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding EditExperience}"
+                                 Margin="8,0" VerticalContentAlignment="Center"/>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                        <Button Content="최대값" Command="{Binding SetMaxStatsCommand}"
+                                Padding="12,6" Margin="0,0,8,0"
+                                Background="{StaticResource SuccessBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                        <Button Content="최소값" Command="{Binding SetMinStatsCommand}"
+                                Padding="12,6" Margin="0,0,8,0"
+                                Background="{StaticResource DangerBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                        <Button Content="적용" Command="{Binding ApplyStateChangesCommand}"
+                                Style="{StaticResource PrimaryButton}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 오른쪽 하단: 날짜 편집 -->
+            <Border Grid.Column="2" Grid.Row="2" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="날짜 편집" FontSize="16" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="게임 날짜 설정 (YYYY-MM-DD)" Foreground="{StaticResource SubTextBrush}"
+                               FontSize="12" Margin="0,0,0,4"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding EditGameDate}"
+                                 VerticalContentAlignment="Center" Padding="8,6"/>
+                        <Button Grid.Column="1" Content="적용"
+                                Command="{Binding ApplyDateChangeCommand}"
+                                Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"/>
+                    </Grid>
+
+                    <Separator Margin="0,16"/>
+
+                    <TextBlock Text="날짜 증감" Foreground="{StaticResource SubTextBrush}"
+                               FontSize="12" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="-" Command="{Binding SubtractDaysCommand}"
+                                Width="40" Height="40" FontSize="18" FontWeight="Bold"
+                                Background="{StaticResource SubTextBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                        <TextBox Text="{Binding AddDaysValue}"
+                                 Width="60" Margin="8,0"
+                                 TextAlignment="Center" VerticalContentAlignment="Center"
+                                 FontSize="16" FontWeight="SemiBold"/>
+                        <Button Content="+" Command="{Binding AddDaysCommand}"
+                                Width="40" Height="40" FontSize="18" FontWeight="Bold"
+                                Background="{StaticResource PrimaryBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                        <TextBlock Text="일" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Foreground="{StaticResource SubTextBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

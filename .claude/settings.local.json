@@ -5,7 +5,10 @@
       "Bash(dir:*)",
       "Bash(dotnet build:*)",
       "Bash(ollama pull:*)",
-      "Bash(magick identify:*)"
+      "Bash(magick identify:*)",
+      "Bash(taskkill:*)",
+      "Bash(start CatTalk2D_DevTools.exe)",
+      "Bash(ollama list:*)"
     ]
   }
 }
