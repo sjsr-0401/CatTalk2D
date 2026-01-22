@@ -336,8 +336,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     // 벤치마크 결과 내보내기
     private readonly BenchmarkExporter _benchmarkExporter = new();
+    private readonly BenchmarkDetailedExporter _benchmarkDetailedExporter = new();
     private readonly CatLikenessScorer _catLikenessScorer = new();
     private BenchmarkExportData? _lastBenchmarkExportData;
+    private BenchmarkDetailedData? _lastBenchmarkDetailedData;
 
     [ObservableProperty]
     private bool _autoExportBenchmark = true;
@@ -366,6 +368,64 @@ public partial class MainViewModel : ObservableObject, IDisposable
         new Axis { MinLimit = 0, MaxLimit = 25, TextSize = 10 }
     };
 
+    // CatLikenessScore 차트
+    [ObservableProperty]
+    private ISeries[] _catScoreSeries = Array.Empty<ISeries>();
+
+    [ObservableProperty]
+    private Axis[] _catScoreAxis = new Axis[]
+    {
+        new Axis { MinLimit = 0, MaxLimit = 100, TextSize = 10 }
+    };
+
+    // CatLikenessScore 가중치 설정
+    [ObservableProperty]
+    private int _catScoreWeightRoutine = 20;
+
+    [ObservableProperty]
+    private int _catScoreWeightNeed = 25;
+
+    [ObservableProperty]
+    private int _catScoreWeightTrust = 20;
+
+    [ObservableProperty]
+    private int _catScoreWeightTsundere = 10;
+
+    [ObservableProperty]
+    private int _catScoreWeightSensitivity = 10;
+
+    [ObservableProperty]
+    private int _catScoreWeightMonologue = 5;
+
+    [ObservableProperty]
+    private int _catScoreWeightAction = 10;
+
+    public int CatScoreWeightTotal =>
+        CatScoreWeightRoutine + CatScoreWeightNeed + CatScoreWeightTrust +
+        CatScoreWeightTsundere + CatScoreWeightSensitivity +
+        CatScoreWeightMonologue + CatScoreWeightAction;
+
+    // 가중치 변경 시 총합 업데이트
+    partial void OnCatScoreWeightRoutineChanged(int value) => OnPropertyChanged(nameof(CatScoreWeightTotal));
+    partial void OnCatScoreWeightNeedChanged(int value) => OnPropertyChanged(nameof(CatScoreWeightTotal));
+    partial void OnCatScoreWeightTrustChanged(int value) => OnPropertyChanged(nameof(CatScoreWeightTotal));
+    partial void OnCatScoreWeightTsundereChanged(int value) => OnPropertyChanged(nameof(CatScoreWeightTotal));
+    partial void OnCatScoreWeightSensitivityChanged(int value) => OnPropertyChanged(nameof(CatScoreWeightTotal));
+    partial void OnCatScoreWeightMonologueChanged(int value) => OnPropertyChanged(nameof(CatScoreWeightTotal));
+    partial void OnCatScoreWeightActionChanged(int value) => OnPropertyChanged(nameof(CatScoreWeightTotal));
+
+    [RelayCommand]
+    private void ResetCatScoreWeights()
+    {
+        CatScoreWeightRoutine = 20;
+        CatScoreWeightNeed = 25;
+        CatScoreWeightTrust = 20;
+        CatScoreWeightTsundere = 10;
+        CatScoreWeightSensitivity = 10;
+        CatScoreWeightMonologue = 5;
+        CatScoreWeightAction = 10;
+    }
+
     // 데이터셋 생성기
     [ObservableProperty]
     private string _generatorCatName = "망고";
@@ -382,6 +442,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
     // 벤치마크용 테스트셋 경로 (생성 시 자동 설정)
     [ObservableProperty]
     private string _testSetPath = "";
+
+    // LoRA 학습 데이터 생성
+    private readonly TrainingDataGenerator _trainingDataGenerator = new();
+
+    [ObservableProperty]
+    private int _trainingDataCount = 500;
+
+    [ObservableProperty]
+    private string _trainingDataStatus = "";
+
+    [ObservableProperty]
+    private bool _isGeneratingTrainingData;
     #endregion
 
     public MainViewModel()
@@ -1177,6 +1249,60 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CanRunBenchmark));
     }
 
+    /// <summary>
+    /// LoRA 학습용 합성 데이터 생성 (템플릿 기반)
+    /// </summary>
+    [RelayCommand]
+    private async Task GenerateLoraTrainingData()
+    {
+        if (IsGeneratingTrainingData) return;
+
+        IsGeneratingTrainingData = true;
+        TrainingDataStatus = $"학습 데이터 {TrainingDataCount}개 생성 중...";
+
+        try
+        {
+            var systemPrompt = $"""
+                너는 '{GeneratorCatName}'이라는 이름의 고양이 캐릭터다.
+                반드시 한국어로만 대답하고, 문장 끝에 '냥'을 붙인다.
+                [CONTROL] 정보를 참고해서 현재 상태와 기분에 맞게 행동하고 대답한다.
+                행동은 괄호로 표현한다. 예: (하품) (우다다) (골골)
+                응답은 1-2문장으로 짧게 한다.
+                """;
+
+            var samples = _trainingDataGenerator.GenerateTrainingData(TrainingDataCount, systemPrompt);
+
+            // 저장 경로 설정
+            var loraDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "CatTalk2D", "LoraData");
+            Directory.CreateDirectory(loraDataPath);
+
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
+            var fileName = $"training_data_{TrainingDataCount}_{timestamp}.jsonl";
+            var outputPath = Path.Combine(loraDataPath, fileName);
+
+            await _trainingDataGenerator.SaveToJsonlAsync(samples, outputPath);
+
+            TrainingDataStatus = $"""
+                ✅ 학습 데이터 생성 완료!
+
+                생성 개수: {samples.Count}개
+                저장 위치: {outputPath}
+
+                다음 단계: Unsloth로 LoRA 학습 실행
+                """;
+        }
+        catch (Exception ex)
+        {
+            TrainingDataStatus = $"❌ 오류: {ex.Message}";
+        }
+        finally
+        {
+            IsGeneratingTrainingData = false;
+        }
+    }
+
     [RelayCommand]
     private async Task RunBenchmark()
     {
@@ -1387,7 +1513,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
             var results = await _benchmarkRunner.RunCompareBenchmarkAsync(models, testSetPath, progress);
 
-            // 랭킹 업데이트
+            // CatLikenessScore 계산 (Export와 랭킹에서 공유)
+            var catScoresByModel = new Dictionary<string, int>();
+            foreach (var r in results)
+            {
+                if (r.CaseResults.Count > 0)
+                {
+                    var catScores = r.CaseResults.Select(caseResult => {
+                        var control = ConvertToScoringControl(caseResult);
+                        return _catLikenessScorer.Evaluate(control, caseResult.Response);
+                    }).ToList();
+                    catScoresByModel[r.ModelName] = (int)catScores.Average(s => s.ScoreTotal);
+                }
+                else
+                {
+                    catScoresByModel[r.ModelName] = 0;
+                }
+            }
+
+            // 랭킹 업데이트 (CatScore 포함)
             BenchmarkRankings.Clear();
             int rank = 1;
             foreach (var result in results)
@@ -1398,6 +1542,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     ModelName = result.ModelName,
                     TotalScore = result.TotalScore,
                     Grade = result.Grade,
+                    CatScore = catScoresByModel.GetValueOrDefault(result.ModelName, 0),
                     ControlScore = result.ControlScore,
                     StateScore = result.StateReflectionScore,
                     AgeScore = result.AgeSpeechScore,
@@ -1406,8 +1551,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 });
             }
 
-            // 차트 업데이트
-            UpdateCatBenchmarkCharts(results);
+            // 차트 업데이트 (CatScore 차트 포함)
+            UpdateCatBenchmarkCharts(results, catScoresByModel);
 
             // Export용 데이터 저장 (CatLikenessScore 계산 포함)
             _lastBenchmarkExportData = new BenchmarkExportData
@@ -1439,7 +1584,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
                                 Monologue = (int)catScores.Average(s => s.Breakdown.Monologue),
                                 Action = (int)catScores.Average(s => s.Breakdown.Action)
                             },
-                            ScoreReasons = catScores.SelectMany(s => s.ScoreReasons).Distinct().Take(10).ToList(),
+                            ScoreReasonsUser = catScores.SelectMany(s => s.ScoreReasonsUser).Distinct().Take(10).ToList(),
+                            ScoreReasonsDebug = catScores.SelectMany(s => s.ScoreReasonsDebug).Distinct().Take(10).ToList(),
                             MatchedTags = catScores.SelectMany(s => s.MatchedTags).Distinct().Take(10).ToList()
                         };
                     }
@@ -1459,10 +1605,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 }).ToList()
             };
 
-            // 자동 Export
+            // 상세 Export용 데이터 수집
+            _lastBenchmarkDetailedData = BuildDetailedExportData(results, testSetPath);
+
+            // 자동 Export (요약 + 상세)
             if (AutoExportBenchmark)
             {
                 var (jsonPath, _) = _benchmarkExporter.ExportBoth(_lastBenchmarkExportData);
+                _benchmarkDetailedExporter.ExportDetailedBoth(_lastBenchmarkDetailedData);
                 LastExportPath = jsonPath;
             }
 
@@ -1523,7 +1673,93 @@ public partial class MainViewModel : ObservableObject, IDisposable
         };
     }
 
-    private void UpdateCatBenchmarkCharts(List<BenchmarkResult> results)
+    /// <summary>
+    /// 상세 Export용 데이터 생성 (각 케이스 × 각 모델)
+    /// </summary>
+    private BenchmarkDetailedData BuildDetailedExportData(List<BenchmarkResult> results, string testSetPath)
+    {
+        var detailedData = new BenchmarkDetailedData
+        {
+            RunInfo = new BenchmarkRunInfo
+            {
+                Timestamp = DateTime.Now,
+                TestSetPath = testSetPath,
+                TotalModels = results.Count,
+                TotalCases = results.FirstOrDefault()?.TotalCases ?? 0
+            },
+            Models = results.Select(r => r.ModelName).ToList()
+        };
+
+        // 테스트 케이스 메타 정보 수집
+        var firstResult = results.FirstOrDefault();
+        if (firstResult?.CaseResults.Count > 0)
+        {
+            detailedData.TestCases = firstResult.CaseResults.Select((cr, idx) => new BenchmarkTestCaseInfo
+            {
+                CaseKey = $"case_{idx + 1:D2}",
+                AgeLevel = cr.AgeLevel,
+                MoodTag = cr.MoodTag,
+                AffectionTier = cr.AffectionTier,
+                UserCategory = cr.UserCategory
+            }).ToList();
+        }
+
+        // 각 모델 × 각 케이스별 상세 결과
+        foreach (var modelResult in results)
+        {
+            for (int i = 0; i < modelResult.CaseResults.Count; i++)
+            {
+                var caseResult = modelResult.CaseResults[i];
+                var control = ConvertToScoringControl(caseResult);
+                var catScore = _catLikenessScorer.Evaluate(control, caseResult.Response);
+
+                detailedData.Results.Add(new BenchmarkDetailedRow
+                {
+                    Model = modelResult.ModelName,
+                    CaseKey = $"case_{i + 1:D2}",
+                    AgeLevel = caseResult.AgeLevel,
+                    AgeDays = control.AgeDays,
+                    MoodTag = caseResult.MoodTag,
+                    AffectionTier = caseResult.AffectionTier,
+                    TrustTier = control.TrustTier,
+                    TimeBlock = control.TimeBlock,
+                    NeedTop1 = control.NeedTop1,
+                    Energy = control.Energy,
+                    Stress = control.Stress,
+                    Hunger = control.Hunger,
+                    Fun = control.Fun,
+                    Affection = control.Affection,
+                    Trust = control.Trust,
+                    IsFeedingWindow = control.IsFeedingWindow,
+                    LastInteractionType = control.LastInteractionType,
+                    UserText = caseResult.UserCategory, // UserCategory를 UserText로 사용
+                    Response = caseResult.Response,
+                    BasicTotal = caseResult.TotalScore,
+                    BasicControl = caseResult.ControlScore,
+                    BasicState = caseResult.StateReflectionScore,
+                    BasicAge = caseResult.AgeSpeechScore,
+                    BasicAffection = caseResult.AffectionAttitudeScore,
+                    BasicConsistency = caseResult.CharacterConsistencyScore,
+                    CatScoreTotal = catScore.ScoreTotal,
+                    CatRoutine = catScore.Breakdown.Routine,
+                    CatNeed = catScore.Breakdown.Need,
+                    CatTrust = catScore.Breakdown.Trust,
+                    CatTsundere = catScore.Breakdown.Tsundere,
+                    CatSensitivity = catScore.Breakdown.Sensitivity,
+                    CatMonologue = catScore.Breakdown.Monologue,
+                    CatAction = catScore.Breakdown.Action,
+                    ScoreReasonsUser = catScore.ScoreReasonsUser,
+                    ScoreReasonsDebug = catScore.ScoreReasonsDebug,
+                    MatchedKeywords = catScore.Debug.MatchedKeywords
+                });
+            }
+        }
+
+        detailedData.RunInfo.TotalRows = detailedData.Results.Count;
+        return detailedData;
+    }
+
+    private void UpdateCatBenchmarkCharts(List<BenchmarkResult> results, Dictionary<string, int>? catScores = null)
     {
         var modelNames = results.Select(r => r.ModelName).ToArray();
         var metricNames = new[] { "Control", "상태반영", "나이말투", "호감도", "일관성" };
@@ -1575,6 +1811,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             new Axis { Labels = modelNames, LabelsRotation = 0, TextSize = 11 }
         };
+
+        // CatLikenessScore 차트
+        if (catScores != null)
+        {
+            var catScoreValues = results.Select(r => (double)catScores.GetValueOrDefault(r.ModelName, 0)).ToArray();
+            CatScoreSeries = new ISeries[]
+            {
+                new ColumnSeries<double>
+                {
+                    Values = catScoreValues,
+                    Name = "CatScore",
+                    Fill = new SolidColorPaint(SKColor.Parse("#1976D2"))
+                }
+            };
+        }
     }
 
     [RelayCommand]
@@ -1743,6 +1994,7 @@ public class BenchmarkRankingItem
     public string ModelName { get; set; } = "";
     public float TotalScore { get; set; }
     public string Grade { get; set; } = "D";
+    public int CatScore { get; set; }  // CatLikenessScore (0~100)
     public float ControlScore { get; set; }
     public float StateScore { get; set; }
     public float AgeScore { get; set; }

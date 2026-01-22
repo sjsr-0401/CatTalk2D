@@ -28,3 +28,12 @@ Thumbs.db
 
 # Codex temp
 **/tmpclaude-*
+
+# Local tooling artifacts
+Tools/CatDevTools/bin/
+Tools/CatDevTools/obj/
+LoraData/venv/
+nul
+
+# Local AI assistant settings
+.claude/settings.local.json

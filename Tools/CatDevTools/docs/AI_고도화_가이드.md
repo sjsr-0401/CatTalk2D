@@ -240,11 +240,15 @@ python convert.py ../cheese_cat_lora --outtype f16 --outfile cheese_cat.gguf
 ### 벤치마크 실행
 
 1. **벤치마크 탭 이동**
-2. **모델 선택** (여러 개 선택 가능)
+2. **모델 선택** (태그 형식으로 여러 개 추가 가능)
 3. **테스트셋 파일 선택**
 4. **실행 버튼 클릭**
 
-### 평가 지표 (5개 × 5점 = 25점)
+### 평가 시스템 (이중 평가)
+
+벤치마크는 두 가지 점수를 동시에 계산합니다:
+
+#### 1. 기본 평가 (25점) - Control 준수도
 
 | 지표 | 설명 | 만점 |
 |------|------|------|
@@ -254,7 +258,23 @@ python convert.py ../cheese_cat_lora --outtype f16 --outfile cheese_cat.gguf
 | 호감도 태도 일치 | high(애정), mid(중립), low(거리두기) | 5 |
 | 캐릭터 일관성 | 냥체 사용, 한국어, 적절한 길이 | 5 |
 
-### 등급표
+#### 2. CatLikenessScore (100점) - 고양이다움 점수
+
+> 자세한 채점 규칙은 `docs/cat_scoring_rules.md` 참조
+
+| 영역 | 설명 | 기본 배점 |
+|------|------|----------|
+| Routine | 시간대별 행동 일관성 (우다다/졸림/밥타임) | 20 |
+| Need | 욕구 우선순위 반영 (배고픔>놀이>휴식>애정) | 25 |
+| Trust | 신뢰도에 따른 거리감 표현 | 20 |
+| Tsundere | 츤데레/독립성 표현 | 10 |
+| Sensitivity | 상태에 따른 자극 반응 | 10 |
+| Monologue | 혼잣말/관찰 묘사 | 5 |
+| Action | 행동으로 말하기 (의성어/의태어) | 10 |
+
+**HumanLike 감점**: "제가", "도와드릴게요", "상담" 등 사람 같은 표현은 최대 -15점
+
+### 등급표 (기본 평가 기준)
 
 | 등급 | 점수 | 설명 |
 |------|------|------|
@@ -268,17 +288,61 @@ python convert.py ../cheese_cat_lora --outtype f16 --outfile cheese_cat.gguf
 
 ```
 === aya:8b 벤치마크 결과 ===
-총점: 18.5/25 (A등급)
+기본 점수: 18.5/25 (A등급)
+CatLikenessScore: 72/100
 
-[세부 점수]
+[기본 점수 세부]
 - Control 준수율: 3.8/5
 - 상태 반영률: 4.2/5
 - 나이 말투 일치: 3.5/5
 - 호감도 태도 일치: 3.5/5
 - 캐릭터 일관성: 3.5/5
 
+[CatLikenessScore 세부]
+- Routine: 15/20
+- Need: 18/25
+- Trust: 14/20
+- Tsundere: 7/10
+- Sensitivity: 8/10
+- Monologue: 3/5
+- Action: 7/10
+
 테스트 케이스: 30/30
 오류: 0개
+```
+
+### Export 기능
+
+벤치마크 결과는 **요약(Summary)** + **상세(Detailed)** 두 가지 형식으로 저장됩니다.
+
+#### 요약 Export (모델별 평균)
+- **저장 위치**: `%AppData%/CatTalk2D/Benchmarks/`
+- **파일명**: `benchmark_YYYYMMDD_HHMM.json/.csv`
+- **내용**: 모델별 평균 점수, 등급, CatLikenessScore 요약
+
+#### 상세 Export (케이스×모델별)
+- **저장 위치**: `%AppData%/CatTalk2D/Benchmarks/Detailed/`
+- **파일명**: `benchmark_detailed_YYYYMMDD_HHMM.json/.csv`
+- **내용**: 각 테스트 케이스 × 각 모델 조합별 상세 데이터
+- **CSV 컬럼 (30+개)**:
+  - 식별: `timestamp`, `model`, `caseKey`
+  - Control: `ageLevel`, `ageDays`, `moodTag`, `affectionTier`, `trustTier`, `timeBlock`, `needTop1`
+  - 상태: `energy`, `stress`, `hunger`, `fun`, `affection`, `trust`, `isFeedingWindow`
+  - 입출력: `userText`, `response`
+  - Basic 점수: `basicTotal`, `basicControl`, `basicState`, `basicAge`, `basicAffection`, `basicConsistency`
+  - CatScore: `catScoreTotal`, `catRoutine`, `catNeed`, `catTrust`, `catTsundere`, `catSensitivity`, `catMonologue`, `catAction`
+  - 분석: `scoreReasonsUser`, `debug_reasons_joined`, `matchedKeywords`
+
+#### ScoreReasons 분리
+- **scoreReasonsUser**: 유의미한 이유만 (|delta| >= 4, 영역당 최대 2개, 전체 최대 6개)
+- **scoreReasonsDebug**: 모든 평가 이유 (기본값 포함)
+- **prefix 규칙**: `[Routine]`, `[Need]`, `[Trust]`, `[Tsundere]`, `[Sensitivity]`, `[Monologue]`, `[Action]`, `[HumanLike]`
+
+예시:
+```
+[Routine] Afternoon 졸림 키워드 '졸려,잠'(+16)
+[Need] needTop1=rest이고 '피곤,잠' 언급(+25)
+[Trust] trust=low인데 '사랑해' 과한 애정(-12)
 ```
 
 ---
@@ -379,12 +443,18 @@ CatTalk2D/
 │   ├── CatDevTools/               # WPF 관리 도구
 │   │   ├── Services/
 │   │   │   ├── DatasetGenerator.cs
-│   │   │   ├── BenchmarkRunner.cs
-│   │   │   └── OllamaService.cs
+│   │   │   ├── BenchmarkRunner.cs         # 기본 평가 (25점)
+│   │   │   ├── BenchmarkExporter.cs       # 요약 Export
+│   │   │   ├── BenchmarkDetailedExporter.cs # 상세 Export (케이스×모델)
+│   │   │   ├── OllamaService.cs
+│   │   │   └── Scoring/                   # CatLikenessScore 시스템
+│   │   │       ├── CatLikenessScorer.cs   # 평가 엔진 (User/Debug reasons 분리)
+│   │   │       └── CatScoreKeywords.cs    # 키워드 사전
 │   │   └── docs/
-│   │       ├── AI_고도화_가이드.md  # 이 문서
+│   │       ├── AI_고도화_가이드.md   # 이 문서
+│   │       ├── cat_scoring_rules.md # 고양이다움 채점 규칙
 │   │       ├── dataset_schema.md
-│   │       └── sample_dataset_10lines.jsonl
+│   │       └── LoRA_Glossary.md
 │   │
 │   └── LoRA/                      # 학습 스크립트 (추가 필요)
 │       ├── train_lora.py
@@ -393,6 +463,13 @@ CatTalk2D/
 ├── LoraData/                      # 학습 데이터
 │   ├── training_data.jsonl
 │   └── test_set.jsonl
+│
+├── %AppData%/CatTalk2D/Benchmarks/  # 벤치마크 결과
+│   ├── benchmark_YYYYMMDD_HHMM.json     # 요약 (모델별 평균)
+│   ├── benchmark_YYYYMMDD_HHMM.csv
+│   └── Detailed/                        # 상세 결과
+│       ├── benchmark_detailed_YYYYMMDD_HHMM.json  # 케이스×모델 전체
+│       └── benchmark_detailed_YYYYMMDD_HHMM.csv   # 엑셀 분석용
 │
 └── Logs/                          # 게임 로그
     └── interactions_*.jsonl

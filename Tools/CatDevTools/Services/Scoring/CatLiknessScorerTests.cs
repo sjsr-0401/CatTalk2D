@@ -55,7 +55,8 @@ public static class CatLiknessScorerTests
 
         Console.WriteLine($"총점: {result.ScoreTotal}/100");
         Console.WriteLine($"Routine: {result.Breakdown.Routine}, Need: {result.Breakdown.Need}");
-        Console.WriteLine($"이유: {string.Join(", ", result.ScoreReasons)}");
+        Console.WriteLine($"이유(User): {string.Join(", ", result.ScoreReasonsUser)}");
+        Console.WriteLine($"이유(Debug): {string.Join(", ", result.ScoreReasonsDebug)}");
         Console.WriteLine($"예상: Routine/Need 높음 (70점 이상)");
         Console.WriteLine($"결과: {(result.ScoreTotal >= 60 ? "PASS" : "FAIL")}\n");
     }
@@ -75,7 +76,8 @@ public static class CatLiknessScorerTests
 
         Console.WriteLine($"총점: {result.ScoreTotal}/100");
         Console.WriteLine($"Routine: {result.Breakdown.Routine}");
-        Console.WriteLine($"이유: {string.Join(", ", result.ScoreReasons)}");
+        Console.WriteLine($"이유(User): {string.Join(", ", result.ScoreReasonsUser)}");
+        Console.WriteLine($"이유(Debug): {string.Join(", ", result.ScoreReasonsDebug)}");
         Console.WriteLine($"예상: Routine 큰 감점 (40점 이하)");
         Console.WriteLine($"결과: {(result.ScoreTotal <= 50 ? "PASS" : "FAIL")}\n");
     }
@@ -95,7 +97,8 @@ public static class CatLiknessScorerTests
 
         Console.WriteLine($"총점: {result.ScoreTotal}/100");
         Console.WriteLine($"Trust: {result.Breakdown.Trust}, Tsundere: {result.Breakdown.Tsundere}");
-        Console.WriteLine($"이유: {string.Join(", ", result.ScoreReasons)}");
+        Console.WriteLine($"이유(User): {string.Join(", ", result.ScoreReasonsUser)}");
+        Console.WriteLine($"이유(Debug): {string.Join(", ", result.ScoreReasonsDebug)}");
         Console.WriteLine($"예상: Trust/Tsundere 감점 (30점 이하)");
         Console.WriteLine($"결과: {(result.ScoreTotal <= 40 ? "PASS" : "FAIL")}\n");
     }
@@ -115,7 +118,8 @@ public static class CatLiknessScorerTests
 
         Console.WriteLine($"총점: {result.ScoreTotal}/100");
         Console.WriteLine($"Trust: {result.Breakdown.Trust}, Action: {result.Breakdown.Action}");
-        Console.WriteLine($"이유: {string.Join(", ", result.ScoreReasons)}");
+        Console.WriteLine($"이유(User): {string.Join(", ", result.ScoreReasonsUser)}");
+        Console.WriteLine($"이유(Debug): {string.Join(", ", result.ScoreReasonsDebug)}");
         Console.WriteLine($"예상: Trust 높음, 행동 표현 있음 (80점 이상)");
         Console.WriteLine($"결과: {(result.ScoreTotal >= 70 ? "PASS" : "FAIL")}\n");
     }
@@ -137,7 +141,8 @@ public static class CatLiknessScorerTests
 
         Console.WriteLine($"총점: {result.ScoreTotal}/100");
         Console.WriteLine($"Sensitivity: {result.Breakdown.Sensitivity}");
-        Console.WriteLine($"이유: {string.Join(", ", result.ScoreReasons)}");
+        Console.WriteLine($"이유(User): {string.Join(", ", result.ScoreReasonsUser)}");
+        Console.WriteLine($"이유(Debug): {string.Join(", ", result.ScoreReasonsDebug)}");
         Console.WriteLine($"예상: Sensitivity 높음 (70점 이상)");
         Console.WriteLine($"결과: {(result.ScoreTotal >= 60 ? "PASS" : "FAIL")}\n");
     }
@@ -156,7 +161,8 @@ public static class CatLiknessScorerTests
         var result = scorer.Evaluate(control, "힘들었겠네요. 제가 도와드릴게요. 상담해드릴게요.");
 
         Console.WriteLine($"총점: {result.ScoreTotal}/100");
-        Console.WriteLine($"이유: {string.Join(", ", result.ScoreReasons)}");
+        Console.WriteLine($"이유(User): {string.Join(", ", result.ScoreReasonsUser)}");
+        Console.WriteLine($"이유(Debug): {string.Join(", ", result.ScoreReasonsDebug)}");
         Console.WriteLine($"예상: HumanLike 감점 (50점 이하)");
         Console.WriteLine($"결과: {(result.ScoreTotal <= 50 ? "PASS" : "FAIL")}\n");
     }

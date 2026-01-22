@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
              mc:Ignorable="d"
-             d:DesignHeight="800" d:DesignWidth="900">
+             d:DesignHeight="1200" d:DesignWidth="900">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Margin="0,0,0,16">
@@ -93,159 +93,278 @@
             </StackPanel>
         </Border>
 
-        <!-- 중단: 테스트 및 설정 -->
-        <Grid Height="350">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="16"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <!-- ========== AI Training 섹션 (벤치마크 위로 이동) ========== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="AI Training 데이터셋" FontSize="18" FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16"/>
 
-            <!-- 왼쪽: 프롬프트 테스트 -->
-            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
-                <Grid>
+                <TextBlock Text="플레이 없이 나이/기분/호감도/성격 조합으로 학습 데이터를 자동 생성합니다."
+                           Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,12"/>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="150"/>
+                    </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="프롬프트 테스트" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="고양이 이름:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" Text="{Binding GeneratorCatName}" Margin="0,0,16,0"/>
 
-                    <TextBox Grid.Row="1"
-                             Text="{Binding TestPrompt, UpdateSourceTrigger=PropertyChanged}"
-                             TextWrapping="Wrap"
-                             AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
-                             Margin="0,0,0,8"/>
+                    <TextBlock Grid.Column="2" Text="생성 목표 (개):" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="3" Text="{Binding GeneratorTargetCount}"/>
 
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Content="테스트 실행"
-                                Command="{Binding RunTestCommand}"
-                                Style="{StaticResource PrimaryButton}"
-                                Margin="0,0,8,0"/>
-                        <TextBlock Text="{Binding TestStatus}" VerticalAlignment="Center"
-                                   Foreground="{StaticResource SubTextBrush}"/>
-                    </StackPanel>
-
-                    <Border Grid.Row="3" Background="#F8F8F8" CornerRadius="6" Padding="12">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <TextBlock Text="{Binding TestResult}" TextWrapping="Wrap"/>
-                        </ScrollViewer>
-                    </Border>
+                    <TextBlock Grid.Row="1" Text="저장 경로:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                             Text="{Binding GeneratorOutputPath}" Margin="0,8,0,0" IsReadOnly="True" Background="#F0F0F0"/>
                 </Grid>
-            </Border>
 
-            <!-- 오른쪽: LoRA 데이터셋 생성 -->
-            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
-                <StackPanel>
-                    <TextBlock Text="LoRA 데이터셋 생성" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="저장 경로 선택"
+                            Command="{Binding SelectGeneratorOutputCommand}"
+                            Padding="12,6" Margin="0,0,8,0"
+                            Background="{StaticResource SubTextBrush}"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <Button Content="학습 데이터셋 생성"
+                            Command="{Binding GenerateDatasetCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            Margin="0,0,8,0"/>
+                    <Button Content="테스트셋 생성"
+                            Command="{Binding GenerateTestSetCommand}"
+                            Padding="12,6"
+                            Background="#4A90D9"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                </StackPanel>
 
-                    <TextBlock Text="대화 로그 → Chat 형식 JSONL 변환"
-                               Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,8"/>
+                <!-- 생성 결과 -->
+                <Border Background="#F8F8F8" CornerRadius="6" Padding="12" MinHeight="60">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="100">
+                        <TextBlock Text="{Binding GeneratorResult}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                    </ScrollViewer>
+                </Border>
 
-                    <Grid Margin="0,0,0,8">
+                <Separator Margin="0,16"/>
+
+                <!-- 조합 정보 (축약) -->
+                <Expander Header="조합 변수 정보" IsExpanded="False">
+                    <Grid Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="로그 폴더:" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding DatasetLogFolder}"
-                                 IsReadOnly="True" Background="#F0F0F0"/>
+                        <StackPanel>
+                            <TextBlock Text="나이 (3)" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock Text="• child/teen/adult" FontSize="10"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="기분 (8)" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock Text="• happy/hungry/stressed" FontSize="10"/>
+                            <TextBlock Text="• tired/bored/excited..." FontSize="10"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="호감도 (3)" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock Text="• low/mid/high" FontSize="10"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="성격 (7)" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock Text="• playful/shy/curious..." FontSize="10"/>
+                        </StackPanel>
                     </Grid>
+                </Expander>
+            </StackPanel>
+        </Border>
 
-                    <CheckBox Content="영어 포함 응답 제외"
-                              IsChecked="{Binding DatasetExcludeEnglish}"
-                              Margin="0,0,0,8"/>
+        <!-- ========== CatLikenessScore 가중치 설정 ========== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="CatLikenessScore 가중치 설정" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text=" (총 100점)" VerticalAlignment="Bottom"
+                               Foreground="{StaticResource SubTextBrush}" FontSize="12" Margin="8,0,0,4"/>
+                </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Button Content="폴더 선택"
-                                Command="{Binding SelectDatasetFolderCommand}"
-                                Padding="12,6" Margin="0,0,8,0"
-                                Background="{StaticResource SubTextBrush}"
-                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                        <Button Content="dataset.jsonl 생성"
-                                Command="{Binding ExportDatasetCommand}"
-                                Style="{StaticResource PrimaryButton}"
-                                IsEnabled="{Binding IsExportingDataset, Converter={StaticResource InvertBool}}"/>
+                <TextBlock Text="벤치마크에서 고양이다움을 평가할 때 사용하는 영역별 가중치를 조절합니다."
+                           Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,16"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 왼쪽 열 -->
+                    <StackPanel Margin="0,0,16,0">
+                        <!-- Routine -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="50"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Routine" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="30"
+                                    Value="{Binding CatScoreWeightRoutine}"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CatScoreWeightRoutine, StringFormat={}{0}점}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="시간대별 행동 일관성 (우다다/졸림)" FontSize="10"
+                                   Foreground="{StaticResource SubTextBrush}" Margin="100,0,0,12"/>
+
+                        <!-- Need -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="50"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Need" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="35"
+                                    Value="{Binding CatScoreWeightNeed}"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CatScoreWeightNeed, StringFormat={}{0}점}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="욕구 우선순위 반영 (배고픔>놀이>휴식)" FontSize="10"
+                                   Foreground="{StaticResource SubTextBrush}" Margin="100,0,0,12"/>
+
+                        <!-- Trust -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="50"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Trust" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="30"
+                                    Value="{Binding CatScoreWeightTrust}"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CatScoreWeightTrust, StringFormat={}{0}점}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="신뢰도에 따른 거리감 표현" FontSize="10"
+                                   Foreground="{StaticResource SubTextBrush}" Margin="100,0,0,12"/>
+
+                        <!-- Tsundere -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="50"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Tsundere" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="20"
+                                    Value="{Binding CatScoreWeightTsundere}"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CatScoreWeightTsundere, StringFormat={}{0}점}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="츤데레/독립성 표현" FontSize="10"
+                                   Foreground="{StaticResource SubTextBrush}" Margin="100,0,0,0"/>
                     </StackPanel>
 
-                    <!-- 생성 결과 -->
-                    <Border Background="#F8F8F8" CornerRadius="6" Padding="12" MinHeight="120">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="150">
-                            <TextBlock Text="{Binding DatasetResult}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
-                        </ScrollViewer>
-                    </Border>
+                    <!-- 오른쪽 열 -->
+                    <StackPanel Grid.Column="1">
+                        <!-- Sensitivity -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="50"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Sensitivity" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="20"
+                                    Value="{Binding CatScoreWeightSensitivity}"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CatScoreWeightSensitivity, StringFormat={}{0}점}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="상태에 따른 자극 반응" FontSize="10"
+                                   Foreground="{StaticResource SubTextBrush}" Margin="100,0,0,12"/>
 
-                    <Separator Margin="0,12"/>
+                        <!-- Monologue -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="50"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Monologue" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="15"
+                                    Value="{Binding CatScoreWeightMonologue}"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CatScoreWeightMonologue, StringFormat={}{0}점}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="혼잣말/관찰 묘사" FontSize="10"
+                                   Foreground="{StaticResource SubTextBrush}" Margin="100,0,0,12"/>
 
-                    <!-- 추천 모델 -->
-                    <TextBlock Text="추천 모델 (한국어)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                    <TextBlock Text="• aya:8b - 다국어 (권장)" Margin="0,1" FontSize="11"/>
-                    <TextBlock Text="• gemma2:9b - 균형" Margin="0,1" FontSize="11"/>
-                    <TextBlock Text="• qwen2.5:7b - 아시아 언어" Margin="0,1" FontSize="11"/>
-                </StackPanel>
-            </Border>
-        </Grid>
+                        <!-- Action -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="50"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Action" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="20"
+                                    Value="{Binding CatScoreWeightAction}"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CatScoreWeightAction, StringFormat={}{0}점}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="행동으로 말하기 (의성어/의태어)" FontSize="10"
+                                   Foreground="{StaticResource SubTextBrush}" Margin="100,0,0,12"/>
 
-        <!-- LoRA 튜닝 가이드 -->
-        <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
-            <StackPanel>
-                <TextBlock Text="LoRA 튜닝 가이드" FontSize="18" FontWeight="Bold"
-                           Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16"/>
+                        <!-- 총점 표시 -->
+                        <Border Background="#E8F4FD" CornerRadius="6" Padding="12" Margin="0,8,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="총 가중치: " FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding CatScoreWeightTotal}" FontSize="18" FontWeight="Bold"
+                                           Foreground="#1976D2" VerticalAlignment="Center"/>
+                                <TextBlock Text=" / 100점" Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
 
-                <TextBlock TextWrapping="Wrap" Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,12">
-                    <Run FontWeight="SemiBold" Foreground="{StaticResource TextBrush}">LoRA란?</Run>
-                    <LineBreak/>
-                    대형 언어 모델을 특정 캐릭터/스타일로 미세조정하는 기법입니다.
-                    전체 모델을 재학습하지 않고 작은 어댑터만 학습해서 효율적입니다.
-                </TextBlock>
-
-                <TextBlock Text="학습 데이터 추출 방법" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="1. 게임 플레이하며 고양이와 대화 (로그 자동 저장)" Margin="0,2"/>
-                    <TextBlock Text="2. 로그 폴더 선택: %AppData%\..\LocalLow\...\CatLogs" Margin="0,2"/>
-                    <TextBlock Text="3. 'JSONL 생성' 클릭 → training_data.jsonl 생성" Margin="0,2"/>
-                </StackPanel>
-
-                <TextBlock Text="LoRA 학습 (Ollama)" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                <Border Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,0,0,12">
-                    <TextBlock Foreground="#E0E0E0" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap">
-                        <Run Foreground="#9CDCFE"># 1. Modelfile 작성</Run><LineBreak/>
-                        FROM aya:8b<LineBreak/>
-                        SYSTEM "당신은 망고라는 고양이입니다..."<LineBreak/><LineBreak/>
-                        <Run Foreground="#9CDCFE"># 2. 커스텀 모델 생성</Run><LineBreak/>
-                        ollama create mango-cat -f Modelfile
-                    </TextBlock>
-                </Border>
-
-                <TextBlock Text="고급: Unsloth로 LoRA 학습" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                <StackPanel>
-                    <TextBlock Text="• Python + Unsloth 라이브러리 사용" Margin="0,2"/>
-                    <TextBlock Text="• training_data_extended.jsonl로 학습" Margin="0,2"/>
-                    <TextBlock Text="• 학습 후 GGUF 변환 → Ollama 임포트" Margin="0,2"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="기본값으로 초기화"
+                            Command="{Binding ResetCatScoreWeightsCommand}"
+                            Padding="12,6"
+                            Background="{StaticResource SubTextBrush}"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <!-- 하단: 고양이다움 벤치마크 -->
-        <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
+        <!-- ========== 고양이다움 벤치마크 ========== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="300"/>
+                    <RowDefinition Height="350"/>
                 </Grid.RowDefinitions>
 
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                     <TextBlock Text="고양이다움 벤치마크" FontSize="18" FontWeight="Bold"
                                Foreground="{StaticResource PrimaryBrush}"/>
-                    <TextBlock Text=" (5점 만점 × 5개 지표 = 25점)" VerticalAlignment="Bottom"
+                    <TextBlock Text=" (기본 25점 + CatScore 100점)" VerticalAlignment="Bottom"
                                Foreground="{StaticResource SubTextBrush}" FontSize="12" Margin="8,0,0,4"/>
                 </StackPanel>
 
@@ -353,18 +472,26 @@
                                   CanUserAddRows="False"
                                   CanUserDeleteRows="False"
                                   IsReadOnly="True"
-                                  Height="120"
-                                  FontSize="12">
+                                  Height="150"
+                                  FontSize="11">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="순위" Binding="{Binding Rank}" Width="50"/>
-                                <DataGridTextColumn Header="모델" Binding="{Binding ModelName}" Width="120"/>
-                                <DataGridTextColumn Header="총점" Binding="{Binding TotalScore, StringFormat=F1}" Width="60"/>
-                                <DataGridTextColumn Header="등급" Binding="{Binding Grade}" Width="50"/>
-                                <DataGridTextColumn Header="Control" Binding="{Binding ControlScore, StringFormat=F1}" Width="60"/>
-                                <DataGridTextColumn Header="상태반영" Binding="{Binding StateScore, StringFormat=F1}" Width="60"/>
-                                <DataGridTextColumn Header="나이말투" Binding="{Binding AgeScore, StringFormat=F1}" Width="60"/>
-                                <DataGridTextColumn Header="호감도" Binding="{Binding AffectionScore, StringFormat=F1}" Width="60"/>
-                                <DataGridTextColumn Header="일관성" Binding="{Binding ConsistencyScore, StringFormat=F1}" Width="60"/>
+                                <DataGridTextColumn Header="#" Binding="{Binding Rank}" Width="30"/>
+                                <DataGridTextColumn Header="모델" Binding="{Binding ModelName}" Width="100"/>
+                                <DataGridTextColumn Header="기본" Binding="{Binding TotalScore, StringFormat=F1}" Width="45"/>
+                                <DataGridTextColumn Header="등급" Binding="{Binding Grade}" Width="35"/>
+                                <DataGridTextColumn Header="CatScore" Binding="{Binding CatScore}" Width="60">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="#1976D2"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Ctrl" Binding="{Binding ControlScore, StringFormat=F1}" Width="40"/>
+                                <DataGridTextColumn Header="상태" Binding="{Binding StateScore, StringFormat=F1}" Width="40"/>
+                                <DataGridTextColumn Header="나이" Binding="{Binding AgeScore, StringFormat=F1}" Width="40"/>
+                                <DataGridTextColumn Header="호감" Binding="{Binding AffectionScore, StringFormat=F1}" Width="40"/>
+                                <DataGridTextColumn Header="일관" Binding="{Binding ConsistencyScore, StringFormat=F1}" Width="40"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </StackPanel>
@@ -384,7 +511,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="지표별 점수 (0~5)" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="기본 지표별 점수 (0~5)" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                             <lvc:CartesianChart Grid.Row="1"
                                                 Series="{Binding BenchmarkScoreSeries}"
                                                 XAxes="{Binding BenchmarkMetricAxis}"
@@ -400,11 +527,11 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="총점 비교 (0~25)" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="CatLikenessScore 비교 (0~100)" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                             <lvc:CartesianChart Grid.Row="1"
-                                                Series="{Binding BenchmarkTotalSeries}"
+                                                Series="{Binding CatScoreSeries}"
                                                 XAxes="{Binding BenchmarkModelAxis}"
-                                                YAxes="{Binding BenchmarkTotalAxis}"
+                                                YAxes="{Binding CatScoreAxis}"
                                                 TooltipPosition="Top"/>
                         </Grid>
                     </Border>
@@ -412,43 +539,192 @@
             </Grid>
         </Border>
 
-        <!-- Ollama 로그 -->
-        <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="220"/>
-                </Grid.RowDefinitions>
+        <!-- ========== LoRA 합성 학습 데이터 생성 ========== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="LoRA 합성 학습 데이터" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text=" (템플릿 기반)" VerticalAlignment="Bottom"
+                               Foreground="{StaticResource SubTextBrush}" FontSize="12" Margin="8,0,0,4"/>
+                </StackPanel>
 
-                <Grid Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="TrustTier별 응답 톤 분리, 행동 묘사 강제 포함하여 고품질 학습 데이터를 자동 생성합니다."
+                           Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,12"/>
+
+                <Grid Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="150"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Text="Ollama 로그" FontSize="18" FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="{Binding OllamaLogFolder}"
-                               Foreground="{StaticResource SubTextBrush}" Margin="12,0,0,0"
-                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                    <Button Grid.Column="2" Content="폴더 열기"
-                            Command="{Binding OpenOllamaLogFolderCommand}"
-                            Padding="12,6" Margin="0,0,8,0"
-                            Background="{StaticResource SubTextBrush}"
-                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                    <Button Grid.Column="3" Content="비우기"
-                            Command="{Binding ClearOllamaLogCommand}"
-                            Padding="12,6"
-                            Background="{StaticResource SubTextBrush}"
-                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <TextBlock Text="생성 개수:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" Text="{Binding TrainingDataCount}" Margin="0,0,16,0"/>
+                    <TextBlock Grid.Column="2" Text="권장: 500 (빠른 검증) ~ 2000 (본격 학습)"
+                               Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center" FontSize="11"/>
                 </Grid>
 
-                <Grid Grid.Row="1">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="학습 데이터 생성"
+                            Command="{Binding GenerateLoraTrainingDataCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            IsEnabled="{Binding IsGeneratingTrainingData, Converter={StaticResource InvertBool}}"
+                            Margin="0,0,8,0"/>
+                    <ProgressBar Width="100" Height="20"
+                                 IsIndeterminate="{Binding IsGeneratingTrainingData}"
+                                 Visibility="{Binding IsGeneratingTrainingData, Converter={StaticResource BoolToVisibility}}"
+                                 Margin="0,0,8,0"/>
+                </StackPanel>
+
+                <!-- 생성 결과 -->
+                <Border Background="#F8F8F8" CornerRadius="6" Padding="12" MinHeight="80">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                        <TextBlock Text="{Binding TrainingDataStatus}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                    </ScrollViewer>
+                </Border>
+
+                <Separator Margin="0,16"/>
+
+                <!-- 학습 데이터 품질 규칙 (접기) -->
+                <Expander Header="데이터 품질 규칙 (클릭하여 펼치기)" IsExpanded="False">
+                    <Border Background="#FFF8E1" CornerRadius="4" Padding="12" Margin="0,8,0,0">
+                        <StackPanel>
+                            <TextBlock Text="• assistant 응답에 행동 묘사 1개 이상 (ActionScore 학습)" FontSize="11"/>
+                            <TextBlock Text="• TrustLow → 애교 표현 금지 (경계 톤 유지)" FontSize="11"/>
+                            <TextBlock Text="• TrustHigh → 친밀하고 적극적인 톤" FontSize="11"/>
+                            <TextBlock Text="• 응답 길이 20~80자 유지 (간결함)" FontSize="11"/>
+                            <TextBlock Text="• TimeBlock에 따른 행동 분화 (오후=졸림, 밤=활동적)" FontSize="11"/>
+                        </StackPanel>
+                    </Border>
+                </Expander>
+            </StackPanel>
+        </Border>
+
+        <!-- 중단: 테스트 및 설정 -->
+        <Grid Height="320">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 왼쪽: 프롬프트 테스트 -->
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="프롬프트 테스트" FontSize="16" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,8"/>
+
+                    <TextBox Grid.Row="1"
+                             Text="{Binding TestPrompt, UpdateSourceTrigger=PropertyChanged}"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Margin="0,0,0,8"/>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="테스트 실행"
+                                Command="{Binding RunTestCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding TestStatus}" VerticalAlignment="Center"
+                                   Foreground="{StaticResource SubTextBrush}"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="3" Background="#F8F8F8" CornerRadius="6" Padding="12">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock Text="{Binding TestResult}" TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 오른쪽: LoRA 데이터셋 생성 -->
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="LoRA 데이터셋 (로그 기반)" FontSize="16" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="대화 로그 → Chat 형식 JSONL 변환"
+                               Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,8"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="로그 폴더:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding DatasetLogFolder}"
+                                 IsReadOnly="True" Background="#F0F0F0"/>
+                    </Grid>
+
+                    <CheckBox Content="영어 포함 응답 제외"
+                              IsChecked="{Binding DatasetExcludeEnglish}"
+                              Margin="0,0,0,8"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button Content="폴더 선택"
+                                Command="{Binding SelectDatasetFolderCommand}"
+                                Padding="12,6" Margin="0,0,8,0"
+                                Background="{StaticResource SubTextBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                        <Button Content="dataset.jsonl 생성"
+                                Command="{Binding ExportDatasetCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                IsEnabled="{Binding IsExportingDataset, Converter={StaticResource InvertBool}}"/>
+                    </StackPanel>
+
+                    <!-- 생성 결과 -->
+                    <Border Background="#F8F8F8" CornerRadius="6" Padding="12" MinHeight="80">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="100">
+                            <TextBlock Text="{Binding DatasetResult}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- LoRA 튜닝 가이드 (축약) -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
+            <Expander Header="LoRA 튜닝 가이드" IsExpanded="False">
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,12">
+                        <Run FontWeight="SemiBold" Foreground="{StaticResource TextBrush}">LoRA란?</Run>
+                        <LineBreak/>
+                        대형 언어 모델을 특정 캐릭터/스타일로 미세조정하는 기법입니다.
+                    </TextBlock>
+
+                    <TextBlock Text="학습 워크플로우" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Border Background="#2D2D2D" CornerRadius="4" Padding="12">
+                        <TextBlock Foreground="#E0E0E0" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap">
+                            <Run Foreground="#9CDCFE">1. DevTools에서 데이터셋 생성</Run><LineBreak/>
+                            <Run Foreground="#9CDCFE">2. Python + Unsloth로 LoRA 학습</Run><LineBreak/>
+                            <Run Foreground="#9CDCFE">3. GGUF 변환 → Ollama 등록</Run><LineBreak/>
+                            <Run Foreground="#9CDCFE">4. 벤치마크로 성능 비교</Run>
+                        </TextBlock>
+                    </Border>
+
+                    <TextBlock Text="자세한 내용: docs/AI_고도화_가이드.md"
+                               Foreground="{StaticResource SubTextBrush}" Margin="0,8,0,0" FontSize="11"/>
+                </StackPanel>
+            </Expander>
+        </Border>
+
+        <!-- Ollama 로그 -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
+            <Expander Header="Ollama 로그" IsExpanded="False">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="180"/>
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="0,0,0,8">
@@ -456,16 +732,27 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <TextBlock Text="필터:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <TextBox Grid.Column="1"
                                  Text="{Binding OllamaLogFilter, UpdateSourceTrigger=PropertyChanged}"
-                                 VerticalContentAlignment="Center"
-                                 ToolTip="포함 문자열 필터"/>
+                                 VerticalContentAlignment="Center"/>
                         <CheckBox Grid.Column="2" Content="자동 스크롤"
                                   IsChecked="{Binding OllamaLogAutoScroll}"
-                                  VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                  VerticalAlignment="Center" Margin="12,0,8,0"/>
+                        <Button Grid.Column="3" Content="폴더"
+                                Command="{Binding OpenOllamaLogFolderCommand}"
+                                Padding="8,4" Margin="0,0,4,0"
+                                Background="{StaticResource SubTextBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                        <Button Grid.Column="4" Content="비우기"
+                                Command="{Binding ClearOllamaLogCommand}"
+                                Padding="8,4"
+                                Background="{StaticResource SubTextBrush}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand"/>
                     </Grid>
 
                     <TextBox Grid.Row="1"
@@ -476,114 +763,14 @@
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"
                              FontFamily="Consolas"
-                             FontSize="12"
+                             FontSize="11"
                              Background="#0F1419"
                              Foreground="#D6E3F3"
                              BorderThickness="0"
                              Padding="8"
                              TextChanged="OnOllamaLogTextChanged"/>
                 </Grid>
-            </Grid>
-        </Border>
-
-        <!-- 학습 데이터셋 생성 섹션 -->
-        <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
-            <StackPanel>
-                <TextBlock Text="조합 기반 데이터셋 생성" FontSize="18" FontWeight="Bold"
-                           Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16"/>
-
-                <TextBlock Text="플레이 없이 나이/기분/호감도/성격 조합으로 학습 데이터를 자동 생성합니다."
-                           Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,12"/>
-
-                <Grid Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="150"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="150"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="고양이 이름:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Column="1" Text="{Binding GeneratorCatName}" Margin="0,0,16,0"/>
-
-                    <TextBlock Grid.Column="2" Text="생성 목표 (개):" VerticalAlignment="Center"/>
-                    <TextBox Grid.Column="3" Text="{Binding GeneratorTargetCount}"/>
-
-                    <TextBlock Grid.Row="1" Text="저장 경로:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
-                             Text="{Binding GeneratorOutputPath}" Margin="0,8,0,0" IsReadOnly="True" Background="#F0F0F0"/>
-                </Grid>
-
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <Button Content="저장 경로 선택"
-                            Command="{Binding SelectGeneratorOutputCommand}"
-                            Padding="12,6" Margin="0,0,8,0"
-                            Background="{StaticResource SubTextBrush}"
-                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                    <Button Content="학습 데이터셋 생성 (dataset.jsonl)"
-                            Command="{Binding GenerateDatasetCommand}"
-                            Style="{StaticResource PrimaryButton}"
-                            Margin="0,0,8,0"/>
-                    <Button Content="테스트셋 생성 (testset.jsonl)"
-                            Command="{Binding GenerateTestSetCommand}"
-                            Padding="12,6"
-                            Background="#4A90D9"
-                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                </StackPanel>
-
-                <!-- 생성 결과 -->
-                <Border Background="#F8F8F8" CornerRadius="6" Padding="12" MinHeight="80">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
-                        <TextBlock Text="{Binding GeneratorResult}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
-                    </ScrollViewer>
-                </Border>
-
-                <Separator Margin="0,16"/>
-
-                <!-- 조합 정보 -->
-                <TextBlock Text="조합 변수 정보" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel>
-                        <TextBlock Text="나이 (3)" FontWeight="SemiBold" FontSize="11"/>
-                        <TextBlock Text="• child" FontSize="10"/>
-                        <TextBlock Text="• teen" FontSize="10"/>
-                        <TextBlock Text="• adult" FontSize="10"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="기분 (8)" FontWeight="SemiBold" FontSize="11"/>
-                        <TextBlock Text="• happy/hungry" FontSize="10"/>
-                        <TextBlock Text="• stressed/tired" FontSize="10"/>
-                        <TextBlock Text="• bored/excited" FontSize="10"/>
-                        <TextBlock Text="• neutral/grumpy" FontSize="10"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="호감도 (3)" FontWeight="SemiBold" FontSize="11"/>
-                        <TextBlock Text="• low (0~29)" FontSize="10"/>
-                        <TextBlock Text="• mid (30~69)" FontSize="10"/>
-                        <TextBlock Text="• high (70~100)" FontSize="10"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="3">
-                        <TextBlock Text="성격 (7)" FontWeight="SemiBold" FontSize="11"/>
-                        <TextBlock Text="• playful/shy" FontSize="10"/>
-                        <TextBlock Text="• curious/aggressive" FontSize="10"/>
-                        <TextBlock Text="• cheeky/picky/needy" FontSize="10"/>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
+            </Expander>
         </Border>
     </StackPanel>
     </ScrollViewer>

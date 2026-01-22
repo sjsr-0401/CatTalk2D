@@ -67,7 +67,7 @@ public class BenchmarkExporter
         foreach (var result in data.Results)
         {
             var catScore = result.CatLikenessScore;
-            var reasonsJoined = catScore != null ? string.Join(" | ", catScore.ScoreReasons) : "";
+            var reasonsJoined = catScore != null ? string.Join(" | ", catScore.ScoreReasonsUser) : "";
 
             sb.AppendLine(string.Join(",",
                 EscapeCsv(result.ModelName),
@@ -181,7 +181,10 @@ public class CatLikenessScoreExport
     public CatScoreBreakdownExport Breakdown { get; set; } = new();
 
     [JsonPropertyName("scoreReasons")]
-    public List<string> ScoreReasons { get; set; } = [];
+    public List<string> ScoreReasonsUser { get; set; } = [];
+
+    [JsonPropertyName("scoreReasonsDebug")]
+    public List<string> ScoreReasonsDebug { get; set; } = [];
 
     [JsonPropertyName("matchedTags")]
     public List<string> MatchedTags { get; set; } = [];

@@ -71,6 +71,18 @@ namespace CatTalk2D.API
         /// </summary>
         public IEnumerator SendMessageCoroutine(string userMessage, System.Action<string> onResponse)
         {
+            // 확장 버전 호출 (행동도 함께 반환)
+            yield return SendMessageWithActionCoroutine(userMessage, (text, action) =>
+            {
+                onResponse?.Invoke(text);
+            });
+        }
+
+        /// <summary>
+        /// 메시지 전송 (행동 포함 확장 버전)
+        /// </summary>
+        public IEnumerator SendMessageWithActionCoroutine(string userMessage, System.Action<string, string> onResponse)
+        {
             // 1. 감정 분석
             SentimentType sentiment = SentimentAnalyzer.Analyze(userMessage);
             Debug.Log($"[OllamaAPI] 사용자 감정: {SentimentAnalyzer.GetSentimentText(sentiment)}");
@@ -86,31 +98,52 @@ namespace CatTalk2D.API
                 Debug.Log($"[OllamaAPI] Control JSON:\n{ControlBuilder.ToJson(control)}");
             }
 
-            // 4. 프롬프트 생성
-            string prompt = PromptBuilder.BuildChatPrompt(control);
+            // 4. BehaviorPlan 생성 (NEW)
+            string userInputType = BehaviorPlanner.InferUserInputType(userMessage);
+            var behaviorPlan = BehaviorPlanner.PlanFromControl(control, userInputType);
+            Debug.Log($"[OllamaAPI] BehaviorPlan: {behaviorPlan.BehaviorState}/{behaviorPlan.BehaviorHint} ({behaviorPlan.Type})");
+
+            // 5. Memory 스냅샷 생성 (NEW)
+            var memory = CatMemoryManager.Instance?.CreateSnapshot() ?? new CatMemorySnapshot();
+
+            // 6. 프롬프트 생성 (BehaviorPlan + Memory 포함)
+            string prompt = PromptBuilder.BuildChatPromptWithPlan(control, behaviorPlan, memory);
 
             if (_logPrompt)
             {
                 Debug.Log($"[OllamaAPI] Prompt:\n{prompt}");
             }
 
-            // 5. 대화 기록
+            // 7. 대화 기록
             _conversationHistory.Add($"주인: {userMessage}");
 
-            // 6. API 요청 및 후처리
+            // 8. API 요청 및 후처리
             string rawResponseCapture = null;
-            yield return SendWithRetry(prompt, control.moodTag, (response, rawResp) =>
+            string parsedAction = "";
+            string parsedText = "";
+
+            yield return SendWithRetryExtended(prompt, control.moodTag, behaviorPlan, (text, action, rawResp) =>
             {
                 rawResponseCapture = rawResp;
-                _conversationHistory.Add($"망고: {response}");
+                parsedAction = action;
+                parsedText = text;
 
-                // 7. 로그 기록 (확장 버전)
+                _conversationHistory.Add($"망고: {text}");
+
+                // 9. Memory 상호작용 기록 (NEW)
+                CatMemoryManager.Instance?.RecordInteraction(
+                    userInputType,
+                    behaviorPlan.BehaviorHint,
+                    System.DateTime.Now.Hour
+                );
+
+                // 10. 로그 기록 (확장 버전)
                 var state = CatStateManager.Instance?.CatState;
                 if (state != null)
                 {
                     InteractionLogger.Instance?.LogConversationExtended(
                         userMessage,
-                        response,
+                        text,
                         state.CreateSnapshot(),
                         control,
                         _modelName,
@@ -118,7 +151,7 @@ namespace CatTalk2D.API
                     );
                 }
 
-                onResponse?.Invoke(response);
+                onResponse?.Invoke(text, action);
             });
         }
 
@@ -126,6 +159,18 @@ namespace CatTalk2D.API
         /// 혼잣말 생성 (Control 레이어 기반)
         /// </summary>
         public IEnumerator GenerateMonologueCoroutine(string trigger, System.Action<string> onResponse)
+        {
+            // 확장 버전 호출
+            yield return GenerateMonologueWithActionCoroutine(trigger, (text, action) =>
+            {
+                onResponse?.Invoke(text);
+            });
+        }
+
+        /// <summary>
+        /// 혼잣말 생성 (행동 포함 확장 버전)
+        /// </summary>
+        public IEnumerator GenerateMonologueWithActionCoroutine(string trigger, System.Action<string, string> onResponse)
         {
             var control = ControlBuilder.BuildForMonologue(trigger);
             string prompt = PromptBuilder.BuildMonologuePrompt(control, trigger);
@@ -164,41 +209,57 @@ namespace CatTalk2D.API
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     string responseText = request.downloadHandler.text;
-                    OllamaResponse response = JsonUtility.FromJson<OllamaResponse>(responseText);
+                    OllamaResponse ollamaResp = JsonUtility.FromJson<OllamaResponse>(responseText);
 
-                    if (!string.IsNullOrEmpty(response.response))
+                    if (!string.IsNullOrEmpty(ollamaResp.response))
                     {
-                        var result = ResponseProcessor.Process(response.response, 20);
+                        // [ACT]/[TEXT] 파싱 지원
+                        var result = ResponseProcessor.ProcessWithAction(ollamaResp.response, 20);
 
                         if (result.IsValid)
                         {
-                            onResponse?.Invoke(result.Text);
+                            onResponse?.Invoke(result.Text, result.Action);
                         }
                         else
                         {
                             // 영어 포함 시 기분에 맞는 대체 응답
-                            onResponse?.Invoke(ResponseProcessor.GetMoodFallbackResponse(control.moodTag));
+                            onResponse?.Invoke(
+                                ResponseProcessor.GetMoodFallbackResponse(control.moodTag),
+                                ResponseProcessor.GetMoodFallbackAction(control.moodTag)
+                            );
                         }
                     }
                     else
                     {
-                        onResponse?.Invoke(null);
+                        onResponse?.Invoke(null, null);
                     }
                 }
                 else
                 {
                     Debug.LogWarning($"[OllamaAPI] 혼잣말 API 오류: {request.error}");
-                    onResponse?.Invoke(null);
+                    onResponse?.Invoke(null, null);
                 }
             }
         }
 
         /// <summary>
-        /// 재시도 로직 포함 API 호출
+        /// 재시도 로직 포함 API 호출 (레거시)
         /// </summary>
         private IEnumerator SendWithRetry(string prompt, string moodTag, System.Action<string, string> onResponse)
         {
-            string finalResponse = null;
+            yield return SendWithRetryExtended(prompt, moodTag, null, (text, action, raw) =>
+            {
+                onResponse?.Invoke(text, raw);
+            });
+        }
+
+        /// <summary>
+        /// 재시도 로직 포함 API 호출 (확장 - 행동 포함)
+        /// </summary>
+        private IEnumerator SendWithRetryExtended(string prompt, string moodTag, Models.BehaviorPlan behaviorPlan, System.Action<string, string, string> onResponse)
+        {
+            string finalText = null;
+            string finalAction = null;
             string lastRawResponse = null;
             int retryCount = 0;
 
@@ -239,8 +300,8 @@ namespace CatTalk2D.API
                         {
                             lastRawResponse = response.response;
 
-                            // ResponseProcessor로 후처리
-                            var result = ResponseProcessor.Process(response.response, _maxResponseLength);
+                            // ResponseProcessor로 후처리 (확장 버전)
+                            var result = ResponseProcessor.ProcessWithAction(response.response, _maxResponseLength);
 
                             if (result.ContainedEnglish)
                             {
@@ -249,32 +310,47 @@ namespace CatTalk2D.API
 
                                 if (retryCount > _maxRetryOnEnglish)
                                 {
-                                    finalResponse = ResponseProcessor.GetMoodFallbackResponse(moodTag);
-                                    Debug.Log($"[OllamaAPI] 대체 응답 사용: {finalResponse}");
+                                    finalText = ResponseProcessor.GetMoodFallbackResponse(moodTag);
+                                    finalAction = ResponseProcessor.GetMoodFallbackAction(moodTag);
+                                    Debug.Log($"[OllamaAPI] 대체 응답 사용: {finalText}");
                                 }
                                 continue;
                             }
 
-                            finalResponse = result.Text;
+                            finalText = result.Text;
+                            finalAction = result.Action;
+
+                            // [ACT]/[TEXT] 포맷 감지 로그
+                            if (result.HasActTextFormat)
+                            {
+                                Debug.Log($"[OllamaAPI] [ACT]/[TEXT] 포맷 감지: Action=\"{finalAction}\"");
+                            }
+
                             break;
                         }
                         else
                         {
                             Debug.LogError("Ollama 응답이 비어있습니다.");
-                            finalResponse = ResponseProcessor.GetFallbackResponse();
+                            finalText = ResponseProcessor.GetFallbackResponse();
+                            finalAction = ResponseProcessor.GetFallbackAction();
                             break;
                         }
                     }
                     else
                     {
                         Debug.LogError($"Ollama API 오류: {request.error}");
-                        finalResponse = "냥냥...";
+                        finalText = "냥냥...";
+                        finalAction = "가만히 있음";
                         break;
                     }
                 }
             }
 
-            onResponse?.Invoke(finalResponse ?? ResponseProcessor.GetFallbackResponse(), lastRawResponse);
+            onResponse?.Invoke(
+                finalText ?? ResponseProcessor.GetFallbackResponse(),
+                finalAction ?? ResponseProcessor.GetFallbackAction(),
+                lastRawResponse
+            );
         }
 
         /// <summary>

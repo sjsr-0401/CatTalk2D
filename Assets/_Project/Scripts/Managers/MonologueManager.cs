@@ -196,11 +196,8 @@ namespace CatTalk2D.Managers
                 yield break;
             }
 
-            // 혼잣말 프롬프트 생성
-            string prompt = BuildMonologuePrompt(state, trigger);
-
             string response = null;
-            yield return apiManager.GenerateMonologueCoroutine(prompt, (r) => response = r);
+            yield return apiManager.GenerateMonologueCoroutine(trigger.ToString(), (r) => response = r);
 
             if (!string.IsNullOrEmpty(response))
             {

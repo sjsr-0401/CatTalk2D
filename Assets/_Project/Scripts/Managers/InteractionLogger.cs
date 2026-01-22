@@ -200,7 +200,7 @@ namespace CatTalk2D.Managers
             var record = new InteractionRecord
             {
                 timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
-                actionType = "Talk",
+                actionType = NormalizeActionType("talk"),
                 gameDate = TimeManager.Instance?.GameDateString ?? "",
                 catAgeDays = TimeManager.Instance?.CatAgeDays ?? 0,
                 userText = userText ?? "",

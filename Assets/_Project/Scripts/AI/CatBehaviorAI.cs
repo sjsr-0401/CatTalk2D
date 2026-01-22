@@ -9,7 +9,7 @@ namespace CatTalk2D.AI
 {
     /// <summary>
     /// 고양이 자율 행동 AI
-    /// - 상태 기반 자동 행동 결정
+    /// - BehaviorPlanner 기반 자동 행동 결정
     /// - 욕구 불만족 시 표현 및 페널티
     /// - 에너지 넘칠 때 자발적 활동
     /// </summary>
@@ -162,13 +162,81 @@ namespace CatTalk2D.AI
 
         #region 행동 결정
         /// <summary>
-        /// 상태 기반 행동 결정
+        /// BehaviorPlanner 기반 행동 결정
         /// </summary>
         private void DecideBehavior()
         {
             var catState = CatStateManager.Instance?.CatState;
             if (catState == null) return;
 
+            // BehaviorPlanner를 통해 행동 계획 생성
+            int currentHour = TimeManager.Instance?.CurrentHour ?? System.DateTime.Now.Hour;
+            var behaviorPlan = BehaviorPlanner.Plan(catState, currentHour, "none");
+
+            Debug.Log($"[CatBehaviorAI] BehaviorPlan: {behaviorPlan.BehaviorState}/{behaviorPlan.BehaviorHint} ({behaviorPlan.Type}) - {behaviorPlan.Reason}");
+
+            // BehaviorPlan의 힌트에 따라 행동 실행
+            ExecuteBehaviorFromPlan(catState, behaviorPlan);
+        }
+
+        /// <summary>
+        /// BehaviorPlan에 따라 실제 행동 실행
+        /// </summary>
+        private void ExecuteBehaviorFromPlan(CatState catState, BehaviorPlan plan)
+        {
+            switch (plan.BehaviorHint)
+            {
+                case BehaviorHints.FoodSeek:
+                    TryToEat(catState);
+                    break;
+
+                case BehaviorHints.Zoomies:
+                    StartCoroutine(RunAround(catState));
+                    break;
+
+                case BehaviorHints.Sleep:
+                case BehaviorHints.Rest:
+                    SetBehavior(CatBehaviorState.Resting);
+                    break;
+
+                case BehaviorHints.Groom:
+                    StartCoroutine(Grooming(catState));
+                    break;
+
+                case BehaviorHints.Play:
+                    StartCoroutine(PlayAlone(catState));
+                    break;
+
+                case BehaviorHints.Yawn:
+                case BehaviorHints.Stretch:
+                    StartCoroutine(StretchAndYawn(catState));
+                    break;
+
+                case BehaviorHints.ObserveWindow:
+                    StartCoroutine(ObserveWindow(catState));
+                    break;
+
+                case BehaviorHints.Walk:
+                    StartCoroutine(WalkAround(catState));
+                    break;
+
+                case BehaviorHints.AttentionSeek:
+                    ExpressNeed(NeedType.Bored);
+                    SetBehavior(CatBehaviorState.Idle);
+                    break;
+
+                default:
+                    // 기본 Idle 또는 레거시 로직 폴백
+                    DecideBehaviorLegacy(catState);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 레거시 행동 결정 (폴백)
+        /// </summary>
+        private void DecideBehaviorLegacy(CatState catState)
+        {
             // 우선순위 1: 매우 배고프면 밥 찾기
             if (catState.Hunger >= 80f)
             {
@@ -307,6 +375,112 @@ namespace CatTalk2D.AI
 
             catState.DecreaseStress(5f);
             Debug.Log("[CatBehaviorAI] 그루밍 완료! 스트레스 -5");
+
+            SetBehavior(CatBehaviorState.Idle);
+            _isPerformingAction = false;
+        }
+
+        /// <summary>
+        /// 혼자 놀기 행동
+        /// </summary>
+        private IEnumerator PlayAlone(CatState catState)
+        {
+            _isPerformingAction = true;
+            SetBehavior(CatBehaviorState.Playing);
+
+            string[] playMessages = new string[]
+            {
+                "냥냥! 뭔가 움직인다냥!",
+                "잡아야 한다냥!",
+                "사냥 본능 발동이다냥!",
+                "이건 내 장난감이다냥!"
+            };
+            ShowCatMessage(playMessages[Random.Range(0, playMessages.Length)]);
+
+            yield return new WaitForSeconds(Random.Range(2f, 4f));
+
+            catState.ConsumeEnergy(10f);
+            catState.IncreaseFun(8f);
+            catState.DecreaseStress(3f);
+            Debug.Log("[CatBehaviorAI] 혼자 놀기 완료! 에너지 -10, 재미 +8, 스트레스 -3");
+
+            SetBehavior(CatBehaviorState.Idle);
+            _isPerformingAction = false;
+        }
+
+        /// <summary>
+        /// 기지개/하품 행동
+        /// </summary>
+        private IEnumerator StretchAndYawn(CatState catState)
+        {
+            _isPerformingAction = true;
+            SetBehavior(CatBehaviorState.Resting);
+
+            string[] messages = new string[]
+            {
+                "으으... 하암... 졸리다냥...",
+                "쭈욱... 기지개 켜는 중이다냥",
+                "하암... 낮잠 자고 싶다냥...",
+                "뻐근하다냥... 스트레칭이다냥"
+            };
+            ShowCatMessage(messages[Random.Range(0, messages.Length)]);
+
+            yield return new WaitForSeconds(2f);
+
+            catState.DecreaseStress(2f);
+            Debug.Log("[CatBehaviorAI] 기지개/하품 완료! 스트레스 -2");
+
+            SetBehavior(CatBehaviorState.Idle);
+            _isPerformingAction = false;
+        }
+
+        /// <summary>
+        /// 창밖 구경 행동
+        /// </summary>
+        private IEnumerator ObserveWindow(CatState catState)
+        {
+            _isPerformingAction = true;
+            SetBehavior(CatBehaviorState.Idle);
+
+            string[] messages = new string[]
+            {
+                "저게 뭐냥...? 새다냥!",
+                "밖에 뭔가 움직인다냥...",
+                "창밖 구경 중이다냥",
+                "저 벌레 잡고 싶다냥..."
+            };
+            ShowCatMessage(messages[Random.Range(0, messages.Length)]);
+
+            yield return new WaitForSeconds(Random.Range(3f, 5f));
+
+            catState.IncreaseFun(3f);
+            Debug.Log("[CatBehaviorAI] 창밖 구경 완료! 재미 +3");
+
+            SetBehavior(CatBehaviorState.Idle);
+            _isPerformingAction = false;
+        }
+
+        /// <summary>
+        /// 걸어다니기 행동
+        /// </summary>
+        private IEnumerator WalkAround(CatState catState)
+        {
+            _isPerformingAction = true;
+            SetBehavior(CatBehaviorState.Idle);
+
+            string[] messages = new string[]
+            {
+                "어슬렁어슬렁... 순찰 중이다냥",
+                "여기저기 둘러보는 중이다냥",
+                "내 영역 점검 중이다냥",
+                "걸어다니는 중이다냥"
+            };
+            ShowCatMessage(messages[Random.Range(0, messages.Length)]);
+
+            yield return new WaitForSeconds(Random.Range(2f, 4f));
+
+            catState.ConsumeEnergy(3f);
+            Debug.Log("[CatBehaviorAI] 걸어다니기 완료! 에너지 -3");
 
             SetBehavior(CatBehaviorState.Idle);
             _isPerformingAction = false;
