@@ -380,7 +380,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="모델 추가:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Ollama 모델:" VerticalAlignment="Center" Margin="0,0,8,0" Width="80"/>
                         <ComboBox Grid.Column="1"
                                   ItemsSource="{Binding OllamaModels}"
                                   SelectedItem="{Binding BenchmarkModelToAdd}"
@@ -391,20 +391,17 @@
                                 Padding="12,6" Margin="8,0,0,0"
                                 Background="{StaticResource SuccessBrush}"
                                 Foreground="White" BorderThickness="0" Cursor="Hand"/>
-                        <TextBlock Grid.Column="4" Text="{Binding BenchmarkStatus}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{StaticResource SubTextBrush}"/>
                     </Grid>
 
                     <!-- 선택된 모델 태그들 -->
-                    <Grid>
+                    <Grid Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="테스트 모델:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="테스트 모델:" VerticalAlignment="Center" Margin="0,0,8,0" Width="80"/>
                         <ItemsControl Grid.Column="1" ItemsSource="{Binding SelectedBenchmarkModels}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -414,7 +411,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="#E8F4FD" CornerRadius="4"
-                                            Margin="0,0,6,6" Padding="8,4">
+                                            Margin="0,0,8,8" Padding="10,6">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{Binding}" VerticalAlignment="Center"
                                                        Foreground="#1976D2" FontWeight="SemiBold"/>
@@ -424,18 +421,33 @@
                                                     CommandParameter="{Binding}"
                                                     Background="Transparent" BorderThickness="0"
                                                     Foreground="#1976D2" FontSize="12"
-                                                    Margin="6,0,0,0" Padding="2,0"
+                                                    Margin="8,0,0,0" Padding="2,0"
                                                     Cursor="Hand" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Button Grid.Column="2" Content="벤치마크 실행"
-                                Command="{Binding RunCatBenchmarkCommand}"
-                                Style="{StaticResource PrimaryButton}"
-                                IsEnabled="{Binding CanRunBenchmark}"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Content="이상적 응답 평가"
+                                    Command="{Binding EvaluateIdealResponsesCommand}"
+                                    Padding="12,8" Margin="0,0,8,0"
+                                    Background="#4CAF50" Foreground="White"
+                                    BorderThickness="0" Cursor="Hand"
+                                    ToolTip="포트폴리오용 점수 산출"/>
+                            <Button Content="벤치마크 실행"
+                                    Command="{Binding RunCatBenchmarkCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    IsEnabled="{Binding CanRunBenchmark}"/>
+                        </StackPanel>
                     </Grid>
+
+                    <!-- 벤치마크 상태/로그 -->
+                    <Border Background="#F5F5F5" CornerRadius="4" Padding="12,8" Margin="0,12,0,0"
+                            Visibility="{Binding BenchmarkStatus, Converter={StaticResource StringToVisibility}}">
+                        <TextBlock Text="{Binding BenchmarkStatus}" TextWrapping="Wrap"
+                                   Foreground="#666"/>
+                    </Border>
                 </StackPanel>
 
                 <!-- 점수표 결과 -->
@@ -596,6 +608,260 @@
                             <TextBlock Text="• 응답 길이 20~80자 유지 (간결함)" FontSize="11"/>
                             <TextBlock Text="• TimeBlock에 따른 행동 분화 (오후=졸림, 밤=활동적)" FontSize="11"/>
                         </StackPanel>
+                    </Border>
+                </Expander>
+            </StackPanel>
+        </Border>
+
+        <!-- ========== LoRA 학습 실행 ========== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="LoRA 학습 실행" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text=" (Python 환경 필요)" VerticalAlignment="Bottom"
+                               Foreground="{StaticResource SubTextBrush}" FontSize="12" Margin="8,0,0,4"/>
+                </StackPanel>
+
+                <TextBlock Text="생성된 학습 데이터를 사용하여 LoRA 모델을 학습합니다."
+                           Foreground="{StaticResource SubTextBrush}" Margin="0,0,0,12"/>
+
+                <!-- 환경 상태 -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="환경 상태:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" Text="{Binding LoraEnvironmentStatus}"
+                               VerticalAlignment="Center" Margin="8,0"/>
+                    <Button Grid.Column="2" Content="환경 확인"
+                            Command="{Binding CheckLoraEnvironmentCommand}"
+                            Padding="12,6"
+                            Background="{StaticResource SubTextBrush}"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                </Grid>
+
+                <Separator Margin="0,0,0,12"/>
+
+                <!-- 학습 설정 -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="베이스 모델:" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding AvailableBaseModels}"
+                              SelectedItem="{Binding SelectedBaseModel}"
+                              DisplayMemberPath="DisplayName"
+                              VerticalContentAlignment="Center"/>
+
+                    <TextBlock Grid.Column="2" Text="Epochs:" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                    <TextBox Grid.Column="3" Text="{Binding LoraEpochs}" VerticalContentAlignment="Center"/>
+
+                    <TextBlock Grid.Column="4" Text="LoRA R:" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                    <TextBox Grid.Column="5" Text="{Binding LoraR}" VerticalContentAlignment="Center"/>
+
+                    <TextBlock Grid.Row="1" Text="LoRA Alpha:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LoraAlpha}"
+                             VerticalContentAlignment="Center" Width="80" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                </Grid>
+
+                <!-- 학습 버튼 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="학습 시작"
+                            Command="{Binding StartLoraTrainingCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            IsEnabled="{Binding CanStartLoraTraining}"
+                            Margin="0,0,8,0"/>
+                    <Button Content="학습 중단"
+                            Command="{Binding CancelLoraTrainingCommand}"
+                            Padding="12,6"
+                            Background="{StaticResource DangerBrush}"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"
+                            IsEnabled="{Binding IsLoraTraining}"
+                            Margin="0,0,8,0"/>
+                    <Button Content="출력 폴더"
+                            Command="{Binding OpenLoraOutputFolderCommand}"
+                            Padding="12,6"
+                            Background="{StaticResource SubTextBrush}"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <ProgressBar Width="100" Height="20"
+                                 IsIndeterminate="{Binding IsLoraTraining}"
+                                 Visibility="{Binding IsLoraTraining, Converter={StaticResource BoolToVisibility}}"
+                                 Margin="12,0,0,0"/>
+                </StackPanel>
+
+                <!-- 학습 로그 -->
+                <Border Background="#0F1419" CornerRadius="6" Padding="8" MinHeight="120" MaxHeight="200">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <TextBlock Text="{Binding LoraTrainingLog}" TextWrapping="Wrap"
+                                   FontFamily="Consolas" FontSize="11"
+                                   Foreground="#D6E3F3"/>
+                    </ScrollViewer>
+                </Border>
+
+                <Separator Margin="0,16,0,12"/>
+
+                <!-- 학습된 모델 목록 -->
+                <TextBlock Text="학습된 LoRA → Ollama 변환" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox ItemsSource="{Binding TrainedLoraModels}"
+                              SelectedItem="{Binding SelectedLoraModel}"
+                              DisplayMemberPath="DisplayName"
+                              VerticalContentAlignment="Center"/>
+                    <Button Grid.Column="1" Content="↻"
+                            Command="{Binding RefreshTrainedLoraModelsCommand}"
+                            ToolTip="LoRA 목록 새로고침"
+                            Padding="8,6" Margin="8,0,0,0"
+                            Background="#607D8B"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"/>
+                    <Button Grid.Column="2" Content="Ollama로 변환"
+                            Command="{Binding RegisterLoraToOllamaCommand}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            Background="#FF9800"
+                            Foreground="White" BorderThickness="0" Cursor="Hand"
+                            ToolTip="LoRA를 병합 후 GGUF 변환하여 Ollama에 등록"/>
+                </Grid>
+
+                <TextBlock Text="※ 변환된 모델은 '고양이다움 벤치마크' Ollama 모델 콤보박스에서 선택 가능"
+                           Foreground="#4CAF50" FontSize="10" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ========== 학습 데이터 품질 평가 ========== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="학습 데이터 품질 평가" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                    <Button Content="품질 평가 실행"
+                            Command="{Binding EvaluateTrainingDataCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            Margin="16,0,0,0"
+                            IsEnabled="{Binding IsEvaluating, Converter={StaticResource InvertBool}}"/>
+                    <ProgressBar Width="60" Height="16"
+                                 IsIndeterminate="{Binding IsEvaluating}"
+                                 Visibility="{Binding IsEvaluating, Converter={StaticResource BoolToVisibility}}"
+                                 Margin="8,0,0,0"/>
+                </StackPanel>
+
+                <!-- 품질 지표 그리드 -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 형식 준수율 -->
+                    <Border Grid.Column="0" Background="#E8F5E9" CornerRadius="6" Padding="12" Margin="0,0,8,8">
+                        <StackPanel>
+                            <TextBlock Text="형식 준수율" FontWeight="SemiBold" FontSize="12" Foreground="#2E7D32"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="{Binding EvalActionRate, StringFormat='{}{0:F1}%'}" FontSize="20" FontWeight="Bold" Foreground="#2E7D32"/>
+                                <TextBlock Text=" 행동묘사" VerticalAlignment="Bottom" Margin="4,0,0,2" FontSize="11" Foreground="#666"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding EvalTsundereRate, StringFormat='{}{0:F1}%'}" FontSize="14" Foreground="#2E7D32"/>
+                                <TextBlock Text=" 츤데레" VerticalAlignment="Center" Margin="4,0,0,0" FontSize="11" Foreground="#666"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 규칙 준수율 -->
+                    <Border Grid.Column="1" Background="#E3F2FD" CornerRadius="6" Padding="12" Margin="0,0,8,8">
+                        <StackPanel>
+                            <TextBlock Text="규칙 준수율" FontWeight="SemiBold" FontSize="12" Foreground="#1565C0"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="{Binding EvalTrustComplianceRate, StringFormat='{}{0:F1}%'}" FontSize="20" FontWeight="Bold" Foreground="#1565C0"/>
+                                <TextBlock Text=" TrustTier" VerticalAlignment="Bottom" Margin="4,0,0,2" FontSize="11" Foreground="#666"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding EvalTimeBlockRate, StringFormat='{}{0:F1}%'}" FontSize="14" Foreground="#1565C0"/>
+                                <TextBlock Text=" TimeBlock | " VerticalAlignment="Center" Margin="4,0,0,0" FontSize="11" Foreground="#666"/>
+                                <TextBlock Text="{Binding EvalNeedRate, StringFormat='{}{0:F1}%'}" FontSize="14" Foreground="#1565C0"/>
+                                <TextBlock Text=" Need" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="11" Foreground="#666"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 종합 점수 -->
+                    <Border Grid.Column="2" Background="#FFF3E0" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="종합 품질 점수" FontWeight="SemiBold" FontSize="12" Foreground="#E65100"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="{Binding EvalAverageScore, StringFormat='{}{0:F1}'}" FontSize="28" FontWeight="Bold" Foreground="#E65100"/>
+                                <TextBlock Text="/100" VerticalAlignment="Bottom" Margin="2,0,0,4" FontSize="14" Foreground="#666"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- TrustTier별 점수 -->
+                    <Border Grid.Row="1" Grid.Column="0" Background="#FAFAFA" CornerRadius="6" Padding="12" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Low (경계)" FontWeight="SemiBold" FontSize="11" Foreground="#757575"/>
+                            <TextBlock Text="{Binding EvalLowTrustScore, StringFormat='{}{0:F1}점'}" FontSize="16" FontWeight="Bold" Foreground="#D32F2F"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="1" Background="#FAFAFA" CornerRadius="6" Padding="12" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Mid (중립)" FontWeight="SemiBold" FontSize="11" Foreground="#757575"/>
+                            <TextBlock Text="{Binding EvalMidTrustScore, StringFormat='{}{0:F1}점'}" FontSize="16" FontWeight="Bold" Foreground="#FFA000"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="2" Background="#FAFAFA" CornerRadius="6" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="High (친밀)" FontWeight="SemiBold" FontSize="11" Foreground="#757575"/>
+                            <TextBlock Text="{Binding EvalHighTrustScore, StringFormat='{}{0:F1}점'}" FontSize="16" FontWeight="Bold" Foreground="#388E3C"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- 커버리지 바 -->
+                <TextBlock Text="조건 조합 커버리지" FontWeight="SemiBold" Margin="0,8,0,4"/>
+                <Grid>
+                    <ProgressBar Value="{Binding EvalCoverageRate}" Maximum="100" Height="24"
+                                 Foreground="#4CAF50" Background="#E0E0E0"/>
+                    <TextBlock Text="{Binding EvalCoverageRate, StringFormat='{}{0:F1}%'}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               FontWeight="Bold" FontSize="12"/>
+                </Grid>
+
+                <Separator Margin="0,12"/>
+
+                <!-- 상세 결과 로그 -->
+                <Expander Header="상세 평가 결과" IsExpanded="False">
+                    <Border Background="#0F1419" CornerRadius="6" Padding="8" MaxHeight="200">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock Text="{Binding EvaluationResultText}" TextWrapping="Wrap"
+                                       FontFamily="Consolas" FontSize="11"
+                                       Foreground="#D6E3F3"/>
+                        </ScrollViewer>
                     </Border>
                 </Expander>
             </StackPanel>

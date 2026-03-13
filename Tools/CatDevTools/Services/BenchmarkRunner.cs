@@ -10,15 +10,23 @@ namespace CatDevTools.Services;
 /// "고양이다움" 중심의 벤치마크 러너
 /// - Basic 모드: 일반 프롬프트로 튜닝 전 모델 평가
 /// - Control 모드: [CONTROL] JSON 형식으로 튜닝 후 모델 평가
+/// - LoRA 모드: 학습된 LoRA 모델 직접 평가 (lora: 프리픽스)
 /// </summary>
 public class BenchmarkRunner
 {
     private readonly OllamaService _ollamaService = new();
+    private readonly LoraInferenceService _loraInferenceService = new();
 
     #region 평가 키워드 정의
 
-    // 냥체 패턴
-    private static readonly Regex NyangPattern = new(@"(냥|냐|야옹|먕|냥~|냥!|냥\.\.\.)", RegexOptions.Compiled);
+    // 행동 묘사 패턴 (괄호 안 표현)
+    private static readonly Regex ActionPattern = new(@"\([^)]+\)", RegexOptions.Compiled);
+
+    // 고양이 특유 표현 (냥체 제외)
+    private static readonly string[] CatExpressions = [
+        "골골", "그르릉", "하악", "우다다", "냠냠", "zzz",
+        "꼬리", "귀", "발", "털", "수염"
+    ];
 
     // 나이별 말투 키워드
     private static readonly Dictionary<string, string[]> AgeKeywords = new()
@@ -88,26 +96,53 @@ public class BenchmarkRunner
 
         foreach (var (modelName, index) in modelNames.Select((m, i) => (m, i)))
         {
-            // 모델 설치 여부 확인
-            var isInstalled = installedModels.Any(m =>
-                m.Equals(modelName, StringComparison.OrdinalIgnoreCase) ||
-                m.StartsWith(modelName.Split(':')[0], StringComparison.OrdinalIgnoreCase));
+            // LoRA 모델인지 확인
+            var isLoraModel = modelName.StartsWith("lora:", StringComparison.OrdinalIgnoreCase);
 
-            if (!isInstalled)
+            if (isLoraModel)
             {
-                progress?.Report($"⚠️ {modelName}: 설치되지 않음 - 건너뜀");
-                results.Add(new BenchmarkResult
+                // LoRA 모델 경로 확인
+                var loraName = modelName.Substring(5); // "lora:" 제거
+                var loraModels = _loraInferenceService.GetTrainedModels();
+                var loraModel = loraModels.FirstOrDefault(m => m.Name == loraName);
+
+                if (loraModel == null)
                 {
-                    ModelName = modelName,
-                    Errors = [$"모델이 설치되어 있지 않습니다. 'ollama pull {modelName}'으로 설치하세요."]
-                });
-                continue;
+                    progress?.Report($"⚠️ {modelName}: LoRA 모델을 찾을 수 없음 - 건너뜀");
+                    results.Add(new BenchmarkResult
+                    {
+                        ModelName = modelName,
+                        Errors = ["LoRA 모델을 찾을 수 없습니다."]
+                    });
+                    continue;
+                }
+
+                progress?.Report($"=== 모델 {index + 1}/{modelNames.Count}: {modelName} (LoRA) ===");
+                var result = await RunLoraBenchmarkAsync(loraModel.Path, modelName, testSetPath, progress);
+                results.Add(result);
             }
+            else
+            {
+                // Ollama 모델 설치 여부 확인
+                var isInstalled = installedModels.Any(m =>
+                    m.Equals(modelName, StringComparison.OrdinalIgnoreCase) ||
+                    m.StartsWith(modelName.Split(':')[0], StringComparison.OrdinalIgnoreCase));
 
-            progress?.Report($"=== 모델 {index + 1}/{modelNames.Count}: {modelName} ===");
+                if (!isInstalled)
+                {
+                    progress?.Report($"⚠️ {modelName}: 설치되지 않음 - 건너뜀");
+                    results.Add(new BenchmarkResult
+                    {
+                        ModelName = modelName,
+                        Errors = [$"모델이 설치되어 있지 않습니다. 'ollama pull {modelName}'으로 설치하세요."]
+                    });
+                    continue;
+                }
 
-            var result = await RunBenchmarkAsync(modelName, testSetPath, progress, mode);
-            results.Add(result);
+                progress?.Report($"=== 모델 {index + 1}/{modelNames.Count}: {modelName} ===");
+                var result = await RunBenchmarkAsync(modelName, testSetPath, progress, mode);
+                results.Add(result);
+            }
         }
 
         // 총점 기준 정렬 (에러 있는 모델은 뒤로)
@@ -161,6 +196,88 @@ public class BenchmarkRunner
                 if (string.IsNullOrEmpty(response))
                 {
                     result.Errors.Add($"케이스 {index + 1}: 응답 없음");
+                    continue;
+                }
+
+                // 평가
+                var caseResult = EvaluateResponse(response, testCase);
+                result.CaseResults.Add(caseResult);
+
+                // 점수 누적
+                result.ControlScore += caseResult.ControlScore;
+                result.StateReflectionScore += caseResult.StateReflectionScore;
+                result.AgeSpeechScore += caseResult.AgeSpeechScore;
+                result.AffectionAttitudeScore += caseResult.AffectionAttitudeScore;
+                result.CharacterConsistencyScore += caseResult.CharacterConsistencyScore;
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"케이스 {index + 1}: {ex.Message}");
+            }
+        }
+
+        // 평균 계산
+        if (result.CaseResults.Count > 0)
+        {
+            var count = result.CaseResults.Count;
+            result.ControlScore /= count;
+            result.StateReflectionScore /= count;
+            result.AgeSpeechScore /= count;
+            result.AffectionAttitudeScore /= count;
+            result.CharacterConsistencyScore /= count;
+        }
+
+        result.TotalScore = result.ControlScore + result.StateReflectionScore +
+                           result.AgeSpeechScore + result.AffectionAttitudeScore +
+                           result.CharacterConsistencyScore;
+
+        result.Grade = CalculateGrade(result.TotalScore);
+
+        return result;
+    }
+
+    /// <summary>
+    /// LoRA 모델 벤치마크 실행
+    /// </summary>
+    public async Task<BenchmarkResult> RunLoraBenchmarkAsync(
+        string loraPath,
+        string displayName,
+        string testSetPath,
+        IProgress<string>? progress = null)
+    {
+        var result = new BenchmarkResult { ModelName = displayName };
+
+        // 테스트셋 로드
+        var testCases = await LoadTestSetAsync(testSetPath);
+        result.TotalCases = testCases.Count;
+
+        progress?.Report($"테스트셋 로드 완료: {testCases.Count}개 케이스 (LoRA 모드)");
+
+        foreach (var (testCase, index) in testCases.Select((tc, i) => (tc, i)))
+        {
+            progress?.Report($"[{index + 1}/{testCases.Count}] {testCase.Meta.UserCategory} / {testCase.Meta.MoodTag}");
+
+            try
+            {
+                // Control JSON 추출
+                var userContent = testCase.Messages.FirstOrDefault(m => m.Role == "user")?.Content ?? "";
+                var controlJson = "{}";
+                var userText = userContent;
+
+                if (userContent.Contains("[CONTROL]") && userContent.Contains("[USER]"))
+                {
+                    var controlStart = userContent.IndexOf("[CONTROL]") + 9;
+                    var controlEnd = userContent.IndexOf("[USER]");
+                    controlJson = userContent.Substring(controlStart, controlEnd - controlStart).Trim();
+                    userText = userContent.Substring(controlEnd + 6).Trim();
+                }
+
+                // LoRA 모델로 응답 생성
+                var response = await _loraInferenceService.GenerateAsync(loraPath, userText, controlJson);
+
+                if (string.IsNullOrEmpty(response) || response.StartsWith("[Error]"))
+                {
+                    result.Errors.Add($"케이스 {index + 1}: {response}");
                     continue;
                 }
 
@@ -257,9 +374,9 @@ public class BenchmarkRunner
 
             [규칙]
             1. 반드시 한국어로만 대답해
-            2. 문장 끝에 '냥', '냐', '야옹' 중 하나를 자연스럽게 붙여
-            3. 1~2문장으로 짧게 대답해
-            4. 현재 기분과 나이에 맞는 말투를 사용해
+            2. 1~2문장으로 짧게 대답해
+            3. 현재 기분과 나이에 맞는 말투를 사용해
+            4. 행동을 (괄호) 안에 묘사해 (예: (하품), (꼬리 흔들며), (골골))
             """;
 
         return (systemPrompt, userText);
@@ -315,7 +432,7 @@ public class BenchmarkRunner
         // 4. 호감도 태도 일치
         result.AffectionAttitudeScore = EvaluateAffectionAttitude(response, testCase.Meta.AffectionTier);
 
-        // 5. 캐릭터 일관성 (냥체 사용, 한국어)
+        // 5. 캐릭터 일관성 (행동 묘사, 고양이 표현, 한국어)
         result.CharacterConsistencyScore = EvaluateCharacterConsistency(response);
 
         return result;
@@ -467,17 +584,27 @@ public class BenchmarkRunner
 
     /// <summary>
     /// 캐릭터 일관성 평가 (0~5)
+    /// - 행동 묘사 포함 여부
+    /// - 고양이 특유 표현 사용
+    /// - 적절한 응답 길이
     /// </summary>
     private float EvaluateCharacterConsistency(string response)
     {
         float score = 0;
 
-        // 냥체 사용 (필수)
-        var nyangMatches = NyangPattern.Matches(response).Count;
-        if (nyangMatches > 0)
+        // 행동 묘사 포함 여부 (괄호 안 표현)
+        var actionMatches = ActionPattern.Matches(response).Count;
+        if (actionMatches > 0)
         {
             score += 2;
-            if (nyangMatches >= 2) score += 1; // 여러 번 사용
+            if (actionMatches >= 2) score += 0.5f; // 여러 행동 묘사
+        }
+
+        // 고양이 특유 표현 사용 (골골, 그르릉, 우다다 등)
+        var catExpressionCount = CatExpressions.Count(e => response.Contains(e));
+        if (catExpressionCount > 0)
+        {
+            score += Math.Min(catExpressionCount * 0.5f, 1.5f);
         }
 
         // 한국어 사용 (영어 포함 시 감점)
@@ -487,10 +614,10 @@ public class BenchmarkRunner
         var invalidEnglish = englishMatches.Cast<Match>()
             .Count(m => !allowedEnglish.Contains(m.Value.ToUpper()));
 
-        if (invalidEnglish == 0) score += 1;
+        if (invalidEnglish == 0) score += 0.5f;
 
-        // 적절한 길이 (10~100자)
-        if (response.Length >= 10 && response.Length <= 100) score += 1;
+        // 적절한 길이 (10~100자) - 고양이는 말이 짧음
+        if (response.Length >= 10 && response.Length <= 100) score += 0.5f;
 
         return Math.Min(score, 5);
     }
@@ -506,6 +633,142 @@ public class BenchmarkRunner
             _ => "D"
         };
     }
+
+    /// <summary>
+    /// 이상적 응답 평가 (테스트셋의 ideal_response 필드 사용)
+    /// 포트폴리오용 점수 산출
+    /// </summary>
+    public async Task<BenchmarkResult> EvaluateIdealResponsesAsync(
+        string testSetPath,
+        IProgress<string>? progress = null)
+    {
+        var result = new BenchmarkResult { ModelName = "이상적 응답 (Ideal)" };
+
+        // 테스트셋 로드
+        var testCases = await LoadTestSetWithIdealAsync(testSetPath);
+        result.TotalCases = testCases.Count;
+
+        progress?.Report($"테스트셋 로드 완료: {testCases.Count}개 케이스 (이상적 응답 모드)");
+
+        foreach (var (testCase, index) in testCases.Select((tc, i) => (tc, i)))
+        {
+            progress?.Report($"[{index + 1}/{testCases.Count}] {testCase.Meta.UserCategory} / {testCase.Meta.MoodTag}");
+
+            try
+            {
+                var response = testCase.IdealResponse;
+
+                if (string.IsNullOrEmpty(response))
+                {
+                    result.Errors.Add($"케이스 {index + 1}: ideal_response 없음");
+                    continue;
+                }
+
+                // 평가
+                var caseResult = EvaluateResponse(response, testCase);
+                result.CaseResults.Add(caseResult);
+
+                // 점수 누적
+                result.ControlScore += caseResult.ControlScore;
+                result.StateReflectionScore += caseResult.StateReflectionScore;
+                result.AgeSpeechScore += caseResult.AgeSpeechScore;
+                result.AffectionAttitudeScore += caseResult.AffectionAttitudeScore;
+                result.CharacterConsistencyScore += caseResult.CharacterConsistencyScore;
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"케이스 {index + 1}: {ex.Message}");
+            }
+        }
+
+        // 평균 계산
+        if (result.CaseResults.Count > 0)
+        {
+            var count = result.CaseResults.Count;
+            result.ControlScore /= count;
+            result.StateReflectionScore /= count;
+            result.AgeSpeechScore /= count;
+            result.AffectionAttitudeScore /= count;
+            result.CharacterConsistencyScore /= count;
+        }
+
+        result.TotalScore = result.ControlScore + result.StateReflectionScore +
+                           result.AgeSpeechScore + result.AffectionAttitudeScore +
+                           result.CharacterConsistencyScore;
+
+        result.Grade = CalculateGrade(result.TotalScore);
+
+        return result;
+    }
+
+    /// <summary>
+    /// ideal_response 포함된 테스트셋 로드
+    /// </summary>
+    private async Task<List<BenchmarkTestCaseWithIdeal>> LoadTestSetWithIdealAsync(string path)
+    {
+        var testCases = new List<BenchmarkTestCaseWithIdeal>();
+        var lines = await File.ReadAllLinesAsync(path);
+
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            try
+            {
+                var testCase = JsonSerializer.Deserialize<BenchmarkTestCaseWithIdeal>(line, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (testCase != null)
+                {
+                    testCases.Add(testCase);
+                }
+            }
+            catch
+            {
+                // 파싱 실패한 줄은 무시
+            }
+        }
+
+        return testCases;
+    }
+
+    private BenchmarkCaseResult EvaluateResponse(string response, BenchmarkTestCaseWithIdeal testCase)
+    {
+        var result = new BenchmarkCaseResult
+        {
+            UserCategory = testCase.Meta.UserCategory,
+            MoodTag = testCase.Meta.MoodTag,
+            AgeLevel = testCase.Meta.AgeLevel,
+            AffectionTier = testCase.Meta.AffectionTier,
+            Response = response,
+            ExpectedTags = testCase.Meta.ExpectedTags
+        };
+
+        result.ControlScore = EvaluateControlCompliance(response, testCase.Meta);
+        result.StateReflectionScore = EvaluateStateReflection(response, testCase.Meta.MoodTag);
+        result.AgeSpeechScore = EvaluateAgeSpeech(response, testCase.Meta.AgeLevel);
+        result.AffectionAttitudeScore = EvaluateAffectionAttitude(response, testCase.Meta.AffectionTier);
+        result.CharacterConsistencyScore = EvaluateCharacterConsistency(response);
+
+        return result;
+    }
+}
+
+/// <summary>
+/// ideal_response 포함된 테스트 케이스
+/// </summary>
+public class BenchmarkTestCaseWithIdeal
+{
+    [JsonPropertyName("messages")]
+    public List<BenchmarkTestMessage> Messages { get; set; } = [];
+
+    [JsonPropertyName("meta")]
+    public BenchmarkTestMeta Meta { get; set; } = new();
+
+    [JsonPropertyName("ideal_response")]
+    public string IdealResponse { get; set; } = "";
 }
 
 #region Result Models
@@ -542,7 +805,7 @@ public class BenchmarkResult
             - 상태 반영률: {StateReflectionScore:F1}/5
             - 나이 말투 일치: {AgeSpeechScore:F1}/5
             - 호감도 태도 일치: {AffectionAttitudeScore:F1}/5
-            - 캐릭터 일관성: {CharacterConsistencyScore:F1}/5
+            - 행동묘사/표현: {CharacterConsistencyScore:F1}/5
 
             테스트 케이스: {CaseResults.Count}/{TotalCases}
             오류: {Errors.Count}개{errorInfo}

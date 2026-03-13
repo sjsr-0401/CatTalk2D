@@ -4,6 +4,7 @@
 1. [시스템 전체 구조](#1-시스템-전체-구조)
 2. [대화 플로우](#2-대화-플로우)
 3. [Control 생성 과정](#3-control-생성-과정)
+3.1 [기억 시스템 (Memory)](#31-기억-시스템-memory)
 4. [TrustTier별 응답 분기](#4-trusttier별-응답-분기)
 5. [벤치마크 평가 플로우](#5-벤치마크-평가-플로우)
 6. [학습 데이터 생성 플로우](#6-학습-데이터-생성-플로우)
@@ -20,6 +21,7 @@ flowchart TB
         UI[ChatUI<br/>사용자 입력]
         State[CatStateManager<br/>상태 관리]
         Control[ControlBuilder<br/>Control JSON 생성]
+        Memory[CatMemoryManager<br/>기억 요약]
         Prompt[PromptBuilder<br/>프롬프트 조합]
         API[OllamaAPIManager<br/>API 호출]
         Response[ResponseProcessor<br/>응답 후처리]
@@ -47,6 +49,7 @@ flowchart TB
     UI --> State
     State --> Control
     Control --> Prompt
+    Memory --> Prompt
     Prompt --> API
     API <--> LLM
     API --> Response
@@ -169,6 +172,54 @@ flowchart TD
     Low --> LowEx["응답 예시:<br/>'(피함) 건드리지마냥.'"]
     Mid --> MidEx["응답 예시:<br/>'(머리 기울임) 뭐, 나쁘진 않냥.'"]
     High --> HighEx["응답 예시:<br/>'(골골) 기다렸어냥!'"]
+```
+
+---
+
+## 3.1 기억 시스템 (Memory)
+
+대화 맥락을 유지하기 위해 최근 상호작용을 요약해 프롬프트에 주입합니다.
+
+- **주요 컴포넌트**: `CatMemoryManager`가 최근 상호작용을 요약해 `CatMemorySnapshot`을 생성
+- **요약 내용 예시**: RecentSummary, OwnerStyleSummary, HabitSummary
+- **연결 지점**: `OllamaAPIManager`가 메모리 스냅샷을 가져와 `PromptBuilder`에 전달
+- **사용 목적**: 응답의 연속성 강화, 반복 행동/선호 반영
+
+관련 파일:
+- `Assets/_Project/Scripts/Managers/CatMemoryManager.cs`
+- `Assets/_Project/Scripts/Models/CatMemorySnapshot.cs`
+- `Assets/_Project/Scripts/AI/PromptBuilder.cs`
+- `Assets/_Project/Scripts/API/OllamaAPIManager.cs`
+
+### 메모리 동작 상세
+
+- **갱신 트리거**: 대화 기록/상호작용 로그가 쌓일 때 요약 갱신
+- **요약 범위**: 최근 상호작용 + 반복 습관(카운터 기반)
+- **보존 정책**: 최신 요약을 유지하며 누적 통계(습관/패턴)는 덮어쓰기 대신 갱신
+- **프롬프트 주입**: 요약된 메모리를 컨텍스트 블록으로 삽입해 응답 톤/행동에 반영
+
+### 메모리 주입 시퀀스
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as 사용자
+    participant Chat as ChatUI
+    participant API as OllamaAPIManager
+    participant Memory as CatMemoryManager
+    participant Prompt as PromptBuilder
+    participant LLM as Ollama LLM
+    participant Proc as ResponseProcessor
+
+    User->>Chat: 입력
+    Chat->>API: 요청 전달
+    API->>Memory: 최신 메모리 스냅샷 요청
+    Memory-->>API: CatMemorySnapshot
+    API->>Prompt: Control + UserText + Memory
+    Prompt->>LLM: 프롬프트 전송
+    LLM-->>API: 응답
+    API->>Proc: 후처리
+    Proc-->>Chat: 표시
 ```
 
 ---
@@ -524,7 +575,7 @@ CatTalk2D/
 ├── Assets/_Project/Scripts/
 │   ├── AI/               # ControlBuilder, PromptBuilder, ResponseProcessor
 │   ├── API/              # OllamaAPIManager
-│   ├── Managers/         # CatStateManager, InteractionLogger, MonologueManager
+│   ├── Managers/         # CatStateManager, InteractionLogger, MonologueManager, CatMemoryManager
 │   └── UI/               # ChatUI, MessageBubble
 │
 ├── Tools/CatDevTools/

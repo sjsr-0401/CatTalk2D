@@ -26,7 +26,7 @@ namespace CatTalk2D.Managers
         #endregion
 
         #region 내부 데이터
-        private List<InteractionRecord> _recentInteractions = new List<InteractionRecord>();
+        private List<MemoryInteractionRecord> _recentInteractions = new List<MemoryInteractionRecord>();
         private Dictionary<string, HabitCounter> _habitCounters = new Dictionary<string, HabitCounter>();
         private int _currentDay = 1;
         private int _currentTurn = 0;
@@ -119,7 +119,7 @@ namespace CatTalk2D.Managers
             _currentTurn++;
 
             // 기록 추가
-            var record = new InteractionRecord
+            var record = new MemoryInteractionRecord
             {
                 Type = type,
                 Hour = hour,
@@ -446,10 +446,10 @@ namespace CatTalk2D.Managers
     }
 
     /// <summary>
-    /// 상호작용 기록 (내부용)
+    /// 상호작용 기록 (내부용 - 메모리 시스템용)
     /// </summary>
     [Serializable]
-    public class InteractionRecord
+    public class MemoryInteractionRecord
     {
         public string Type;
         public int Hour;

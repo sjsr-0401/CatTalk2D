@@ -133,7 +133,6 @@ namespace CatTalk2D.API
                 // 9. Memory 상호작용 기록 (NEW)
                 CatMemoryManager.Instance?.RecordInteraction(
                     userInputType,
-                    behaviorPlan.BehaviorHint,
                     System.DateTime.Now.Hour
                 );
 

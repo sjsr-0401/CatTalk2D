@@ -1,0 +1,24 @@
+============================================================
+CatTalk2D LoRA Model Test Results
+============================================================
+
+Input: 안녕?
+Control: {"trustTier":"mid","moodTag":"neutral"}
+Response: (늘어짐) 흥! 최고다냥! 최고냥!
+
+----------------------------------------
+Input: 배고파?
+Control: {"trustTier":"high","moodTag":"hungry"}
+Response: (늘어짐)뭔가 맛있는 거 없냥?
+
+----------------------------------------
+Input: 놀아줄까?
+Control: {"trustTier":"high","moodTag":"playful"}
+Response: (후다닥) ...뭐야 이 기분 나쁜 고양이는.
+
+----------------------------------------
+Input: 왜 그렇게 무뚝뚝해?
+Control: {"trustTier":"low","moodTag":"grumpy"}
+Response: (늘어짐) ...뭐, 그렇게 싫어하는건 아니냥.
+
+----------------------------------------

@@ -37,3 +37,9 @@ nul
 
 # Local AI assistant settings
 .claude/settings.local.json
+
+# LoRA model outputs (too large for git)
+LoraData/outputs/
+LoraData/*.safetensors
+*.bin
+*.safetensors
